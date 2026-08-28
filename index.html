@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Krittin Jindamai — Aerospace Engineering</title>
+  <meta name="description" content="Krittin (Yim) Jindamai — aerospace engineering portfolio: experience, projects, and research papers.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
+       the document's first render, and on a page this size the browser can
+       paint before an end-of-body script has run — which meant the page
+       transition's direction flag and the carried-over backdrop offsets were
+       being applied too late to affect the incoming snapshot. -->
+  <script src="js/main.js"></script>
+
+  <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
+       to the CDN build — required because OrbitControls.js itself imports the bare
+       "three" specifier internally. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Tool marks. These are ORIGINAL monoline glyphs drawn to this site's
+       hairline system, not reproductions of the vendors' trademarks — each
+       one depicts what the tool does (a node graph, a subdivided FE mesh, a
+       revolve about an axis) rather than imitating its brand. Keep them
+       stroke-only, 1.4px, currentColor: they must read as part of the
+       instrument panel, not as pasted-in logos. -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="sk-ros2" viewBox="0 0 24 24">
+      <circle cx="6" cy="17.5" r="2.5"/><circle cx="18" cy="17.5" r="2.5"/><circle cx="12" cy="5.5" r="2.5"/>
+      <path d="M8.5 17.5h7M10.7 7.7 7.3 15.3M13.3 7.7l3.4 7.6"/>
+    </symbol>
+    <symbol id="sk-gazebo" viewBox="0 0 24 24">
+      <path d="M12 12.5 21 17l-9 4.5L3 17z"/><circle cx="12" cy="8" r="3.6"/>
+    </symbol>
+    <symbol id="sk-matlab" viewBox="0 0 24 24">
+      <path d="M2.5 18.5c3.2 0 4.2-13 9.5-13s6.3 13 9.5 13"/>
+      <path d="M7 18.5c2.1 0 2.9-7.5 5-7.5s2.9 7.5 5 7.5"/>
+    </symbol>
+    <symbol id="sk-simulink" viewBox="0 0 24 24">
+      <rect x="2" y="8" width="7" height="8" rx="1"/><rect x="15" y="8" width="7" height="8" rx="1"/>
+      <path d="M9 12h6M12.4 10.3 14.6 12l-2.2 1.7"/>
+    </symbol>
+    <symbol id="sk-ansys" viewBox="0 0 24 24">
+      <path d="M12 3.5 21.5 20h-19z"/>
+      <path d="M7.25 11.75h9.5M7.25 11.75 12 20M16.75 11.75 12 20"/>
+    </symbol>
+    <symbol id="sk-solidworks" viewBox="0 0 24 24">
+      <path d="M12 2.5 20.5 7.4v9.2L12 21.5 3.5 16.6V7.4z"/>
+      <path d="M12 12v9.5M12 12l8.5-4.6M12 12 3.5 7.4"/>
+    </symbol>
+    <symbol id="sk-fusion360" viewBox="0 0 24 24">
+      <path d="M12 3.5a8.5 8.5 0 1 1-6.01 2.49"/>
+      <path d="M5.99 2.2v3.79h3.79"/>
+      <rect x="9.25" y="9.25" width="5.5" height="5.5"/>
+    </symbol>
+    <symbol id="sk-nastran" viewBox="0 0 24 24">
+      <path d="M2.5 18.5h19"/><path d="M4.5 18.5 12 7l7.5 11.5"/>
+      <path d="M12 1.5v3.6M10.6 3.9 12 5.5l1.4-1.6"/>
+    </symbol>
+    <symbol id="sk-hypermesh" viewBox="0 0 24 24">
+      <path d="M2.5 8.5c4-3.2 15-3.2 19 0v7c-4 3.2-15 3.2-19 0z"/>
+      <path d="M8.8 6.4v11.2M15.2 6.4v11.2M2.5 12c4-3.2 15-3.2 19 0"/>
+    </symbol>
+  </svg>
+
+  <div class="nebula" id="nebula"></div>
+
+  <!-- Three depth layers; main.js drifts and parallaxes them, and spawns
+       the occasional meteor into .stars. -->
+  <div class="stars" id="stars">
+    <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
+    <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
+    <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
+  </div>
+
+  <nav class="topnav">
+    <div class="wordmark">krittin jindamai</div>
+    <div class="navlinks" id="navlinks">
+      <a href="#home">home</a>
+      <a href="#about">about</a>
+      <a href="#experience">experience</a>
+      <a href="#projects">projects</a>
+      <a href="#awards">awards</a>
+      <span class="nav-indicator" id="nav-indicator"></span>
+    </div>
+    <div class="scroll-progress" id="scroll-progress"></div>
+  </nav>
+
+  <!-- Home and About share ONE sticky scene. The globe is pinned across both
+       and the camera descends from far orbit to a low pass as you scroll, so
+       the section change reads as arriving somewhere rather than as two
+       separate screens. The scene releases at the About/Education border —
+       the horizon sinks off the bottom and the page is on the ground. -->
+  <div class="descent" id="descent">
+    <!-- Sticky and viewport-tall, with a negative bottom margin so it takes no
+         space in flow. It spans BOTH sections; it used to be boxed inside
+         .hero-right, which hard-clipped a cubesat in half the moment its orbit
+         crossed into the text column, and then inside .hero, which is why the
+         globe used to end where the hero did.
+
+         Deliberately NOT given a view-transition-name: it is content, not
+         chrome, so it belongs in the root snapshot and should leave with the
+         rest of the page. Naming it would pull it out into its own group that
+         then needs its own keyframes to look right. -->
+    <div class="hero-scene" id="hero-scene">
+      <canvas id="orbit-canvas"></canvas>
+      <div class="orbit-labels" id="orbit-labels"></div>
+
+      <!-- Values here are read straight off the live scene each frame. They
+           live in the scene layer rather than in the hero copy so they stay
+           with the globe through the descent instead of scrolling away with
+           the name — the readout is the thread that ties the two sections
+           together, and `range` counts down as the camera comes in. -->
+      <div class="telemetry" id="telemetry">
+        <div class="tel-row"><span class="tel-k">cam az</span><span class="tel-v" data-tel="az">—</span></div>
+        <div class="tel-row"><span class="tel-k">cam el</span><span class="tel-v" data-tel="el">—</span></div>
+        <div class="tel-row"><span class="tel-k">range</span><span class="tel-v" data-tel="range">—</span></div>
+        <div class="tel-row"><span class="tel-k">track</span><span class="tel-v" data-tel="track">—</span></div>
+      </div>
+
+      <!-- Wrapped so the descent can fade the hint out once dragging hands
+           over to scroll: .drag-hint's own entrance animation is fill:forwards,
+           and an animation outranks any opacity we could set on the element
+           itself — so the fade has to ride on a parent. -->
+      <div class="hint-wrap">
+        <div class="drag-hint">drag to orbit — click a satellite</div>
+      </div>
+    </div>
+
+  <section class="hero" id="home">
+    <div class="hero-left">
+      <div class="eyebrow"><span class="dot"></span>aerospace engineer</div>
+
+      <h1 class="hero-name" data-typing-name="KRITTIN|JINDAMAI"></h1>
+
+      <div class="preferred-name">(Yim)</div>
+      <div class="hero-title">Senior Aerospace Engineering Student</div>
+      <div class="hero-focus"><span class="dot"></span>ADCS, GNC, Nonlinear Control Focus</div>
+
+      <div class="hero-status">
+        <span class="live"></span>
+        <span>utc</span><span class="val" id="utc-clock">--:--:--</span>
+        <span class="sep">/</span>
+        <span>tracking</span><span class="val" id="payload-count">0</span><span>payloads</span>
+      </div>
+
+      <div class="links-row">
+        <a class="btn-dark" href="assets/papers/resume.pdf"><span class="idx">01</span> resume ↓</a>
+        <a class="ghost-link" href="#" target="_blank" rel="noopener"><span class="idx">02</span> linkedin →</a>
+        <a class="ghost-link" href="#" target="_blank" rel="noopener"><span class="idx">03</span> github →</a>
+      </div>
+    </div>
+
+    <!-- Empty on desktop, where it is just the flex space the globe shows
+         through. On the stacked layout (≤900px) it is the block the scene
+         sits in, which is what keeps the globe out from behind the name. -->
+    <div class="hero-right"></div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="section-inner">
+      <div class="eyebrow" data-reveal><span class="dot"></span>01 — about</div>
+      <div class="about-grid">
+        <!-- Just the portrait. It carried a based/program/focus/status block
+             underneath; Krittin had it removed, and the photo grew into
+             exactly the height that freed up, so About's total is unchanged. -->
+        <div class="about-plate" data-reveal>
+          <div class="about-photo">[ photo ]</div>
+        </div>
+        <div class="about-text" data-reveal>
+          <p class="lead">[Placeholder lead line — one or two sentences on who Krittin is and what he focuses on.]</p>
+          <p>[Placeholder bio paragraph — background, current program/year, and area of interest within aerospace, e.g. guidance/navigation/controls, propulsion, or systems. To be replaced with real copy.]</p>
+          <p>[Placeholder second paragraph — interests outside coursework, what he's currently working toward.]</p>
+
+          <!-- Education lives here rather than in a section of its own. It
+               sits in the right column because the dossier plate opposite is
+               the taller of the two, so these rows cost About no height. -->
+          <div class="about-edu">
+            <div class="about-edu-label">education</div>
+            <div class="edu-row">
+              <span class="edu-inst">University of Florida</span>
+              <span class="edu-detail">Honors Aerospace Engineering · 2023 – 2027</span>
+            </div>
+            <div class="edu-row">
+              <span class="edu-inst">United World College Costa Rica</span>
+              <span class="edu-detail">International Baccalaureate Programme · 2021 – 2023</span>
+            </div>
+            <div class="edu-row">
+              <span class="edu-inst">Suankularb Wittayalai School</span>
+              <span class="edu-detail">2017 – 2021</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Third column: the tool marks, now a vertical marquee drifting
+             slowly downward rather than the horizontal band that used to sit
+             at the foot of the section. #skills stays on it for deep links —
+             nothing else in the page may claim that id. -->
+        <div class="about-skills" id="skills" data-reveal>
+          <div class="skills-label"><span class="dot"></span>tools &amp; methods</div>
+          <div class="marquee marquee-v">
+            <div class="marquee-track">
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-ros2"/></svg>ROS2</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-gazebo"/></svg>Gazebo</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-matlab"/></svg>MATLAB</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-simulink"/></svg>Simulink</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-ansys"/></svg>Ansys</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-solidworks"/></svg>SolidWorks</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-fusion360"/></svg>Fusion 360</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-nastran"/></svg>MSC Nastran</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-hypermesh"/></svg>HyperMesh</div>
+          <!-- duplicated for a seamless marquee loop — edit BOTH copies -->
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-ros2"/></svg>ROS2</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-gazebo"/></svg>Gazebo</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-matlab"/></svg>MATLAB</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-simulink"/></svg>Simulink</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-ansys"/></svg>Ansys</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-solidworks"/></svg>SolidWorks</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-fusion360"/></svg>Fusion 360</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-nastran"/></svg>MSC Nastran</div>
+          <div class="skill-tag"><svg class="skill-ico"><use href="#sk-hypermesh"/></svg>HyperMesh</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inside .descent so the scene is still mounted and rendering here. The
+       camera does not move for this: main.js publishes the scroll past About
+       as a pixel offset and the frustum tracks it 1:1, which is what puts the
+       underside of the globe across the top of this section and makes the two
+       read as one continuous piece of sky. -->
+  <section class="experience" id="experience">
+    <div class="section-inner">
+      <div class="eyebrow" data-reveal><span class="dot"></span>02 — experience</div>
+
+      <!-- A row lights up on hover — inverting to a near-solid light panel —
+           and its highlights unfold underneath. At rest the rows are barely
+           tinted so the starfield reads straight through them. The unfold uses
+           grid-template-rows 0fr -> 1fr, which is the only way to transition to
+           an auto height; browsers without it just snap open, which is fine. -->
+      <div class="exp-list">
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">01</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Undergraduate Research Assistant</div>
+              <div class="exp-org">Nonlinear Control Research Group (NCR)</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">research</span>
+              <span class="exp-date">Fall 2025 – Present</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — what the research focused on.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">02</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Teaching Assistant</div>
+              <div class="exp-org">Mechanics of Materials Laboratory, University of Florida</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">leadership</span>
+              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — course and responsibilities.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">03</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Mechanical and Testing Engineering Intern</div>
+              <div class="exp-org">Geo-Informatics and Space Technology Development Agency (GISTDA), Thailand</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">internship</span>
+              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — what the internship covered.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">04</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Guidance, Navigation &amp; Controls Lead</div>
+              <div class="exp-org">Swamplaunch</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">leadership</span>
+              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — scope of role and team.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">05</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Payload Software Associate Lead</div>
+              <div class="exp-org">Swamplaunch</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">leadership</span>
+              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — scope of role and team.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">06</div>
+            <div class="exp-role-block">
+              <div class="exp-role">Undergraduate Research Assistant</div>
+              <div class="exp-org">King Mongkut's University of Technology North Bangkok</div>
+            </div>
+            <div class="exp-summary">[One-line summary of the work.]</div>
+            <div class="exp-meta">
+              <span class="exp-tag">research</span>
+              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>[Placeholder highlight — what the research focused on.]</li>
+              <li>[Placeholder highlight — a specific contribution or result.]</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div><!-- /.descent — the scene unpins here, already scrolled clear -->
+
+  <section class="projects" id="projects">
+    <div class="section-inner">
+      <div class="eyebrow" data-reveal><span class="dot"></span>03 — projects &amp; papers</div>
+
+      <!-- Old flat grid — kept here, inert, so this experiment can be
+           reverted in one move (no git in this repo). Swap .proj-carousel
+           back out for this block to go back. -->
+      <!--
+      <div class="projects-grid">
+        <a class="proj-card" href="projects/rocket-software.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — swamplaunch-payload ]</div>
+          <div class="proj-body">
+            <div class="proj-title">Swamplaunch Payload</div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+        <a class="proj-card" href="projects/rocket-airbrake.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — swamplaunch-apogee-control ]</div>
+          <div class="proj-body">
+            <div class="proj-title">Swamplaunch Apogee Control System</div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+        <a class="proj-card" href="projects/thesis.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — thesis ]</div>
+          <div class="proj-body">
+            <div class="proj-title">Undergraduate Honors Thesis</div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+        <a class="proj-card" href="projects/ros-research.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — cbf-nonholonomic-robots ]</div>
+          <div class="proj-body">
+            <div class="proj-title">CBF for Nonholonomic Robots</div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+        <a class="proj-card" href="projects/controls-final-project.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — mars-drone-crane-control ]</div>
+          <div class="proj-body">
+            <div class="proj-title">Mars Drone Crane Control</div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+        <a class="proj-card" href="projects/senior-design-project.html" data-reveal>
+          <div class="proj-media">[ 3d model placeholder — senior-design-project ]</div>
+          <div class="proj-body">
+            <div class="proj-title">Senior Design Project <span class="proj-status">in progress</span></div>
+            <div class="proj-desc">[Placeholder description.]</div>
+            <div class="proj-detail-cue">view project <span class="arr">→</span></div>
+          </div>
+        </a>
+      </div>
+      -->
+
+      <!-- Shuffle-style 3D carousel — the previous experiment, now also inert
+           and kept as the second revert path. Its CSS and initProjectCarousel
+           are both still present and both no-op when this markup is commented
+           out, so uncommenting this block is the whole revert. -->
+      <!--
+      <div class="proj-carousel" id="proj-carousel" data-reveal>
+      <div class="carousel-stage">
+        <div class="carousel-track" id="carousel-track">
+          <div class="carousel-item" data-index="0" data-desc="[Placeholder description.]">
+            <a class="carousel-link" href="projects/thesis.html">
+              <div class="carousel-model">[ 3d model placeholder — thesis ]</div>
+              <div class="carousel-title">Undergraduate Honors Thesis</div>
+            </a>
+          </div>
+          <div class="carousel-item" data-index="1" data-desc="[Placeholder description.]">
+            <a class="carousel-link" href="projects/ros-research.html">
+              <div class="carousel-model">[ 3d model placeholder — cbf-nonholonomic-robots ]</div>
+              <div class="carousel-title">CBF for Nonholonomic Robots</div>
+            </a>
+          </div>
+          <div class="carousel-item" data-index="2" data-desc="[Placeholder description.]">
+            <a class="carousel-link" href="projects/rocket-airbrake.html">
+              <div class="carousel-model">[ 3d model placeholder — swamplaunch-apogee-control ]</div>
+              <div class="carousel-title">Swamplaunch Apogee Control System</div>
+            </a>
+          </div>
+          <div class="carousel-item" data-index="3" data-desc="[Placeholder description.]">
+            <a class="carousel-link" href="projects/rocket-software.html">
+              <div class="carousel-model">[ 3d model placeholder — swamplaunch-payload ]</div>
+              <div class="carousel-title">Swamplaunch Payload</div>
+            </a>
+          </div>
+          <div class="carousel-item" data-index="4" data-desc="[Placeholder description.]">
+            <a class="carousel-link" href="projects/controls-final-project.html">
+              <div class="carousel-model">[ 3d model placeholder — mars-drone-crane-control ]</div>
+              <div class="carousel-title">Mars Drone Crane Control</div>
+            </a>
+          </div>
+          <div class="carousel-item" data-index="5" data-desc="[Placeholder description — in progress.]">
+            <a class="carousel-link" href="projects/senior-design-project.html">
+              <div class="carousel-model">[ 3d model placeholder — senior-design-project ]</div>
+              <div class="carousel-title">Senior Design Project <span class="proj-status">in progress</span></div>
+            </a>
+          </div>
+        </div>
+      </div>
+        <div class="carousel-nav">
+          <button class="carousel-arrow" id="carousel-prev" type="button" aria-label="previous project">←</button>
+          <div class="carousel-desc" id="carousel-desc">[Placeholder description.]</div>
+          <button class="carousel-arrow" id="carousel-next" type="button" aria-label="next project">→</button>
+        </div>
+        <div class="carousel-hint">drag to rotate — click to select</div>
+      </div>
+      -->
+
+      <!-- Project field — one fixed-scatter diorama, no cards. The rockets
+           and the CBF robot are placed at explicit x/y percentages of
+           .proj-field; the Moon (centred) and the three projects living
+           inside its scene (the CMG cubesat, Sky Crane, Lunar Hopper) are
+           positioned in real 3D by js/moon-scene.js instead, not CSS
+           percentages. Every flat-still object is an image the user
+           supplies; its box shows a labelled placeholder until the file
+           exists. See "Projects field" in CLAUDE.md for the placement
+           arithmetic and which dials to turn. -->
+      <div class="proj-field" id="proj-field" data-reveal>
+
+        <!-- Small supplementary index. The scattered diorama is the primary
+             way to browse, but Krittin asked for "a small list on the side...
+             so can still click on the project" — the diorama alone asks a
+             viewer to hunt for six objects at very different visual weights,
+             and this guarantees every title is findable and clickable
+             regardless. Deliberately minimal: titles only, no art, tucked in
+             the corner rather than competing with the scatter. Hidden on the
+             stacked layout (see style.css) since that layout already IS a
+             plain list of everything. -->
+        <nav class="proj-index" aria-label="Projects index">
+          <span class="proj-index-eyebrow"><span class="dot"></span>index</span>
+          <a href="projects/rocket-airbrake.html">Project TerraGator</a>
+          <a href="projects/rocket-software.html">Project Navigator</a>
+          <a href="projects/thesis.html">Hybrid CMG Momentum Desaturation</a>
+          <a href="projects/ros-research.html">Non Holonomic CBF</a>
+          <a href="projects/controls-final-project.html">Sky Crane</a>
+          <a href="projects/senior-design-project.html">Lunar Hopper</a>
+        </nav>
+
+        <!-- Real 3D Moon, in the hero globe's treatment: posterised bands, a
+             hairline at the mare boundary, hairline crater rims, hairline
+             limb, no lighting and no glow. It spins on its own and can be
+             dragged. Fully on screen (not clipped), bigger, and now centred
+             in the field rather than anchored to an edge — see .proj-moon in
+             style.css.
+
+             Three projects live inside this scene, none of them CSS-
+             positioned: the Hybrid CMG cubesat in a real low orbit
+             (buildCmgCubesat), the Sky Crane as a simple lander fixed to a
+             point on the surface so it turns with the Moon
+             (buildSkyCraneLander), and the Lunar Hopper as a parabolic hop
+             trajectory from the south pole rather than a model at all
+             (hopTrajectoryPoints) — all three positioned every frame from
+             their real 3D positions into #moon-labels. See js/moon-scene.js. -->
+        <div class="proj-moon">
+          <canvas class="moon-canvas" id="moon-canvas"></canvas>
+          <div class="moon-labels" id="moon-labels"></div>
+        </div>
+
+        <!-- Mobile/reduced-motion fallbacks only, for the three Moon-scene
+             projects above. The Moon canvas never mounts in the stacked
+             layout, so these plain stills are the only place those projects
+             would otherwise vanish entirely — hidden everywhere else. -->
+        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:170px; --ar:1"
+           href="projects/thesis.html">
+          <span class="proj-obj-model">
+            <img class="proj-art" src="assets/images/projects/hybrid-cmg.png" alt="">
+            <span class="proj-ph">[ still — hybrid-cmg ]</span>
+          </span>
+          <span class="proj-obj-label">Hybrid CMG Momentum Desaturation</span>
+        </a>
+
+        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:190px; --ar:1.15"
+           href="projects/controls-final-project.html">
+          <span class="proj-obj-model">
+            <img class="proj-art" src="assets/images/projects/sky-crane.png" alt="">
+            <span class="proj-ph">[ still — sky-crane ]</span>
+          </span>
+          <span class="proj-obj-label">Sky Crane</span>
+        </a>
+
+        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:180px; --ar:1.05"
+           href="projects/senior-design-project.html">
+          <span class="proj-obj-model">
+            <img class="proj-art" src="assets/images/projects/lunar-hopper.png" alt="">
+            <span class="proj-ph">[ still — lunar-hopper ]</span>
+          </span>
+          <span class="proj-obj-label">Lunar Hopper <span class="proj-status">in progress</span></span>
+        </a>
+
+        <!-- In space. x is the model's horizontal centre, y its top edge,
+             both percentages of .proj-field. Both stand upright, side by side
+             on the right.
+
+             --w came down 30% from the 2x pass (430/390 → 300/275) — Krittin's
+             point: spacing these off their BOX edges was wrong to begin with,
+             because the real rocket in each file is a thin sliver in a mostly
+             transparent frame (checked: terragator's visible pixels are only
+             ~92px wide inside a 537px-wide canvas, navigator's ~116px — both
+             roughly centred). So the boxes can sit much closer together, even
+             overlap, without the actual rocket art ever touching — --x moved
+             from 56/84 to 66/78, deliberately closer than the boxes'
+             half-widths would suggest is "safe," because box-safe was never
+             the real constraint.
+
+             --y stays deliberately unequal so the BASES land level (--y is a
+             TOP edge, not a centre — see the same reasoning as every earlier
+             round), re-solved for the new, smaller heights. Spacing and sizes
+             are settled — --x is the only thing still moving, in the same
+             1.75-point step each time: 66/78 → 73/85 → 74.75/86.75 →
+             78.25/90.25 (the last step applied twice more, per request), same
+             gap preserved throughout. -->
+        <a class="proj-obj" style="--x:78.25%; --y:6%; --w:300px; --ar:.67"
+           href="projects/rocket-airbrake.html">
+          <span class="proj-obj-model">
+            <img class="proj-art" src="assets/images/projects/terragator.png" alt="">
+            <span class="proj-ph">[ still — terragator ]</span>
+          </span>
+          <span class="proj-obj-label">Project TerraGator</span>
+        </a>
+
+        <a class="proj-obj" style="--x:90.25%; --y:10%; --w:275px; --ar:.67"
+           href="projects/rocket-software.html">
+          <span class="proj-obj-model">
+            <img class="proj-art" src="assets/images/projects/navigator.png" alt="">
+            <span class="proj-ph">[ still — navigator ]</span>
+          </span>
+          <span class="proj-obj-label">Project Navigator</span>
+        </a>
+
+        <!-- The one object with ground under it: a perspective floor with the
+             tracked line drawn on it, the robot still sitting on top. The floor
+             is built here rather than being part of the supplied image so the
+             hairlines match every other rule on the site. -->
+        <a class="proj-obj proj-obj--ground" style="--x:15%; --y:64%; --w:360px; --ar:1.875"
+           href="projects/ros-research.html">
+          <span class="proj-obj-model">
+            <svg class="ground-plane" viewBox="0 0 300 160" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="cbf-fade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset=".18" stop-color="#000"/>
+                  <stop offset=".46" stop-color="#fff"/>
+                </linearGradient>
+                <mask id="cbf-mask"><rect width="300" height="160" fill="url(#cbf-fade)"/></mask>
+              </defs>
+              <g mask="url(#cbf-mask)">
+                <g fill="none" stroke="#3d3a39" stroke-width=".6">
+                  <path d="M60 40-20 155M90 40 36.7 155M120 40 93.3 155M150 40v115M180 40l26.7 115M210 40l53.3 115M240 40l80 115"/>
+                  <path d="M60 40h180M50.3 54h199.4M37.7 72h224.6M21 96h258M1.6 124h296.8M-20 155h340"/>
+                </g>
+                <path d="M70 150c50-30 20-70 80-88 56-17 76-6 95-28" fill="none"
+                      stroke="#ee6018" stroke-width="1.4" stroke-dasharray="4 4"/>
+              </g>
+            </svg>
+            <img class="proj-art" src="assets/images/projects/nonholonomic-cbf.png" alt="">
+            <span class="proj-ph">[ still — nonholonomic-cbf ]</span>
+          </span>
+          <span class="proj-obj-label">Non Holonomic Control Barrier Function</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Last section, and outside .descent — the globe has long gone by here. -->
+  <section class="awards" id="awards">
+    <div class="section-inner">
+      <div class="eyebrow" data-reveal><span class="dot"></span>04 — awards &amp; certificates</div>
+      <div class="awards-grid">
+        <div class="award-card" data-reveal>
+          <div class="award-media">[ certificate image ]</div>
+          <div class="award-name">VBU</div>
+        </div>
+        <div class="award-card" data-reveal>
+          <div class="award-media">[ certificate image ]</div>
+          <div class="award-name">Dean's List</div>
+        </div>
+        <div class="award-card" data-reveal>
+          <div class="award-media">[ certificate image ]</div>
+          <div class="award-name">Honors</div>
+        </div>
+        <div class="award-card" data-reveal>
+          <div class="award-media">[ certificate image ]</div>
+          <div class="award-name">UFIC Certificate</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>krittin jindamai — mission log — 2026</footer>
+
+  <script type="module">
+    import { initOrbitScene } from "./js/orbit-scene.js";
+    import { initMoonScene } from "./js/moon-scene.js";
+
+    // The Moon renders only while the Projects section is on screen — it
+    // installs its own IntersectionObserver — so mounting it here costs a bake
+    // and nothing else until you scroll to it. Guarded because the stacked
+    // layout drops the canvas entirely.
+    // clientWidth rather than a duplicated breakpoint: the stacked layout hides
+    // the canvas in CSS, and a zero-size canvas is exactly the case that must
+    // not get a WebGL context and a bake.
+    const moonCanvas = document.getElementById("moon-canvas");
+    if (moonCanvas && moonCanvas.clientWidth > 0) {
+      initMoonScene({ canvas: moonCanvas, labelLayer: document.getElementById("moon-labels") });
+    }
+
+    // Looked up once. onTelemetry fires ~8 times a second, and re-querying the
+    // payload counter inside it was a DOM lookup per tick for a value that
+    // never moves.
+    const telEls = {
+      az: document.querySelector('[data-tel="az"]'),
+      el: document.querySelector('[data-tel="el"]'),
+      range: document.querySelector('[data-tel="range"]'),
+      track: document.querySelector('[data-tel="track"]'),
+      count: document.getElementById("payload-count"),
+    };
+
+    initOrbitScene({
+      canvas: document.getElementById("orbit-canvas"),
+      labelLayer: document.getElementById("orbit-labels"),
+      onSelect: (id) => window.smoothScrollTo("#" + id),
+      onTelemetry: (t) => {
+        telEls.az.textContent = t.az.toFixed(1).padStart(5, "0") + "°";
+        telEls.el.textContent = (t.el >= 0 ? "+" : "−") + Math.abs(t.el).toFixed(1) + "°";
+        telEls.range.textContent = t.range.toFixed(2) + " re";
+
+        const locked = t.tracking && t.sats.find((s) => s.id === t.tracking);
+        telEls.track.textContent = locked
+          ? locked.label + " · r " + locked.radius.toFixed(2) + " · ν " + locked.anomaly.toFixed(0) + "°"
+          : t.sats.length + " payloads nominal";
+        telEls.track.classList.toggle("hot", Boolean(locked));
+
+        telEls.count.textContent = t.sats.length;
+      },
+    });
+  </script>
+</body>
+</html>

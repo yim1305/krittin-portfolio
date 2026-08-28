@@ -1,0 +1,1287 @@
+/* ==========================================================================
+   Krittin Jindamai — Aerospace Portfolio
+   Design system: "Factory" (refero.design) + space theme
+
+   Surfaces, type and chrome stay flat and hairline-ruled per the system.
+   The one deliberate exception is the page backdrop and the 3D hero: those
+   carry the "deep space" depth (very low-alpha nebula wash, layered stars,
+   atmospheric limb on the globe). Nothing in the UI itself glows.
+   ========================================================================== */
+
+:root{
+  --obsidian:#101010;
+  --carbon:#1d1a18;
+  --ash:#3d3a39;
+  --graphite:#4d4947;
+  --warm-granite:#8a8380;
+  --pale-stone:#b8b3b0;
+  --bone:#eeeeee;
+  --chalk:#fafafa;
+  --orange:#ee6018;
+  --green:#a0ca92;
+
+  /* deep-space backdrop */
+  --void:#06070a;
+  --void-edge:#0a0c11;
+
+  --sans: 'Space Grotesk', Inter, system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* mechanical for interactive feedback, long-tail for entrances */
+  --ease: cubic-bezier(.4,0,.2,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --t-fast:.2s;
+  --t-mid:.32s;
+  --t-slow:.9s;
+
+  /* Space reserved at the foot of About for the globe to sit in. Must stay in
+     step with HORIZON_Y in js/orbit-scene.js, which is what actually decides
+     the row the horizon lands on — currently 0.70 of the viewport, so roughly
+     the bottom third is planet. Raise one, raise the other. */
+  --horizon-band:32vh;
+}
+
+*, *::before, *::after{ box-sizing:border-box; }
+
+/* ---------- cross-document page transitions ----------
+   Same-origin navigations (a project card, a back link) cross-fade instead
+   of blinking white. Chromium honours this with no JS at all; browsers
+   without it fall back to the exit fade in main.js.
+
+   The backdrop layers are named so they are snapshotted SEPARATELY from
+   the page content — combined with the offsets main.js carries across in
+   sessionStorage, the same nebula and starfield sit in the same place on
+   both sides of the navigation, so the two pages read as one continuous
+   piece of sky with the content swapping over it. */
+@view-transition{ navigation:auto; }
+
+/* The chrome holds still. Nav, footer and backdrop are identical on both
+   sides, so snapshotting them separately and refusing to animate them turns
+   the navigation into content swapping INSIDE a fixed frame, rather than the
+   whole page blinking out and back. */
+.topnav{ view-transition-name:site-nav; }
+footer{ view-transition-name:site-footer; }
+::view-transition-group(site-nav),
+::view-transition-group(site-footer){ animation-duration:0s; }
+::view-transition-old(site-nav), ::view-transition-new(site-nav),
+::view-transition-old(site-footer), ::view-transition-new(site-footer){ animation:none; }
+
+/* Unhurried and sequenced: the outgoing content clears quickly, then the
+   incoming content takes its time arriving. The overlap is what keeps it
+   from reading as a cut. */
+::view-transition-old(root){ animation:260ms var(--ease) both vt-out; }
+::view-transition-new(root){ animation:520ms 90ms var(--ease-out) both vt-in; }
+
+/* Direction is set on <html> by main.js before the snapshot is taken, so
+   going deeper and coming back are not the same gesture: forward, the new
+   page rises into place; back, it settles down from above. */
+@keyframes vt-out{ to{ opacity:0; transform:translateY(-10px); } }
+@keyframes vt-in{ from{ opacity:0; transform:translateY(16px); } }
+html[data-vt="back"]::view-transition-old(root){ animation-name:vt-out-back; }
+html[data-vt="back"]::view-transition-new(root){ animation-name:vt-in-back; }
+@keyframes vt-out-back{ to{ opacity:0; transform:translateY(10px); } }
+@keyframes vt-in-back{ from{ opacity:0; transform:translateY(-16px); } }
+
+/* Identical pixels on both sides, so this cross-fade is invisible — which
+   is the point. Holding them still is what sells the continuity. */
+::view-transition-group(nebula-layer),
+::view-transition-group(star-layer){ animation-duration:0s; }
+::view-transition-old(nebula-layer), ::view-transition-new(nebula-layer),
+::view-transition-old(star-layer),   ::view-transition-new(star-layer){ animation:none; }
+
+/* The clicked project card's media and title morph into the detail page's
+   hero media and title. main.js tags the clicked card on the way out and
+   the returned-to card on the way back; the detail-page halves are named
+   below, where they are unique per page. */
+::view-transition-group(proj-media),
+::view-transition-group(proj-title){ animation-duration:560ms; animation-timing-function:var(--ease-out); }
+
+/* Native smooth scroll is replaced by an eased JS scroll in main.js so the
+   long jumps between sections don't snap. Kept as the no-JS fallback. */
+html{ scroll-behavior:smooth; }
+html.js-scroll{ scroll-behavior:auto; }
+
+body{
+  margin:0;
+  color:var(--bone);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  background-color:var(--void);
+  /* The vignette rides --sky-color with the nebula. It is subtle, but it is
+     still a soft disc of a lighter colour sitting behind every section, and
+     "completely black past the hero" should mean it. At --sky-color: 0 the
+     inner stop goes fully transparent and the whole thing flattens to the
+     --void background underneath. */
+  background-image:radial-gradient(1400px 900px at 50% 40%,
+    rgba(10,12,17,calc(var(--sky-color, 1))), var(--void) 70%);
+  background-attachment:fixed;
+}
+
+/* ---------- nebula backdrop ----------
+   Decorative only, and the deepest thing on the page: it sits behind the
+   star layers and parallaxes at a fraction of their rate. Kept well under
+   half opacity — it is there for depth and colour, not as wallpaper.
+   Source: assets/images/nebula-backdrop.webp (AI-generated; permitted for
+   decorative, non-representational assets only — see CLAUDE.md). */
+.nebula{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:url("../assets/images/nebula-backdrop.webp") center / cover no-repeat;
+  /* The colour belongs to the HOME page only. --sky-color is driven from
+     scroll by main.js and falls to 0 across the descent, so it is gone by the
+     time About is in place and every section from there on is plain black with
+     white star dots. Project detail pages set it to 0 outright. */
+  opacity:calc(.38 * var(--sky-color, 1));
+  /* Overscaled so the slow drift and the scroll parallax never expose an
+     edge. Raise this if the drift amplitudes in main.js go up. */
+  transform:scale(1.12);
+  will-change:transform;
+  view-transition-name:nebula-layer;
+}
+
+a{ color:var(--bone); text-decoration:none; }
+a:hover{ color:var(--chalk); }
+
+img, video{ max-width:100%; display:block; }
+
+/* ---------- starfield ----------
+   Three depth layers, each drifting at its own rate and parallaxing against
+   scroll (transforms are written by main.js). Layers are oversized so the
+   tiling seam never reaches an edge. */
+.stars{
+  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+  view-transition-name:star-layer;
+}
+.star-layer{
+  position:absolute; inset:-25%;
+  background-repeat:repeat;
+  will-change:background-position;
+}
+
+.star-far{
+  opacity:.55;
+  background-size:900px 900px;
+  background-image:
+    radial-gradient(1px 1px at 40px 60px,   #7d7d7d, transparent),
+    radial-gradient(1px 1px at 155px 210px, #646464, transparent),
+    radial-gradient(1px 1px at 260px 40px,  #7d7d7d, transparent),
+    radial-gradient(1px 1px at 330px 300px, #565656, transparent),
+    radial-gradient(1px 1px at 420px 130px, #7d7d7d, transparent),
+    radial-gradient(1px 1px at 505px 420px, #646464, transparent),
+    radial-gradient(1px 1px at 600px 250px, #565656, transparent),
+    radial-gradient(1px 1px at 690px 500px, #7d7d7d, transparent),
+    radial-gradient(1px 1px at 760px 90px,  #646464, transparent),
+    radial-gradient(1px 1px at 850px 380px, #565656, transparent),
+    radial-gradient(1px 1px at 90px 480px,  #7d7d7d, transparent),
+    radial-gradient(1px 1px at 200px 640px, #646464, transparent),
+    radial-gradient(1px 1px at 350px 780px, #565656, transparent),
+    radial-gradient(1px 1px at 470px 700px, #7d7d7d, transparent),
+    radial-gradient(1px 1px at 620px 850px, #646464, transparent),
+    radial-gradient(1px 1px at 800px 690px, #565656, transparent);
+}
+
+.star-mid{
+  opacity:.75;
+  background-size:1180px 1180px;
+  background-image:
+    radial-gradient(1.2px 1.2px at 70px 120px,   #b6b6b6, transparent),
+    radial-gradient(1.2px 1.2px at 230px 380px,  #9c9c9c, transparent),
+    radial-gradient(1.2px 1.2px at 410px 70px,   #cfcfcf, transparent),
+    radial-gradient(1.2px 1.2px at 560px 460px,  #9c9c9c, transparent),
+    radial-gradient(1.2px 1.2px at 700px 200px,  #b6b6b6, transparent),
+    radial-gradient(1.2px 1.2px at 880px 540px,  #cfcfcf, transparent),
+    radial-gradient(1.2px 1.2px at 1020px 300px, #9c9c9c, transparent),
+    radial-gradient(1.2px 1.2px at 1120px 90px,  #b6b6b6, transparent),
+    radial-gradient(1.2px 1.2px at 150px 660px,  #cfcfcf, transparent),
+    radial-gradient(1.2px 1.2px at 330px 900px,  #9c9c9c, transparent),
+    radial-gradient(1.2px 1.2px at 520px 1080px, #b6b6b6, transparent),
+    radial-gradient(1.2px 1.2px at 760px 820px,  #cfcfcf, transparent),
+    radial-gradient(1.2px 1.2px at 940px 1010px, #9c9c9c, transparent),
+    radial-gradient(1.2px 1.2px at 1090px 720px, #b6b6b6, transparent);
+}
+
+.star-near{
+  opacity:.9;
+  background-size:1520px 1520px;
+  background-image:
+    radial-gradient(1.9px 1.9px at 120px 180px,   #ffffff, transparent),
+    radial-gradient(1.6px 1.6px at 380px 520px,   #e9e9e9, transparent),
+    radial-gradient(2.1px 2.1px at 640px 140px,   #ffffff, transparent),
+    radial-gradient(1.6px 1.6px at 900px 620px,   #efefef, transparent),
+    radial-gradient(1.9px 1.9px at 1180px 340px,  #e9e9e9, transparent),
+    radial-gradient(1.6px 1.6px at 1420px 760px,  #ffffff, transparent),
+    radial-gradient(2.1px 2.1px at 260px 940px,   #dcdcdc, transparent),
+    radial-gradient(1.6px 1.6px at 560px 1280px,  #ffffff, transparent),
+    radial-gradient(1.9px 1.9px at 820px 1060px,  #e9e9e9, transparent),
+    radial-gradient(1.6px 1.6px at 1100px 1400px, #efefef, transparent),
+    radial-gradient(2.1px 2.1px at 1360px 1120px, #ffffff, transparent);
+  animation:star-breathe 9s ease-in-out infinite;
+}
+@keyframes star-breathe{ 0%,100%{ opacity:.9; } 50%{ opacity:.62; } }
+
+/* meteors — spawned by main.js, rare and short */
+.meteor{
+  position:absolute; top:0; left:0;
+  width:120px; height:1px;
+  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.75));
+  opacity:0;
+  will-change:transform, opacity;
+}
+
+/* ---------- top nav ---------- */
+.topnav{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 40px; height:64px;
+  border-bottom:1px solid var(--ash);
+  background:rgba(8,9,13,.82);
+  backdrop-filter:blur(8px);
+  font-family:var(--mono); font-size:15px; letter-spacing:-.02em; text-transform:lowercase;
+}
+.topnav .wordmark{ font-weight:500; }
+
+/* scroll progress hairline along the bottom edge of the nav */
+.scroll-progress{
+  position:absolute; left:0; bottom:-1px; height:1px; width:0;
+  background:var(--orange);
+  transition:width .1s linear;
+}
+
+/* Centred on the bar itself rather than laid out between the wordmark and the
+   right edge, so the links sit dead centre regardless of how wide the wordmark
+   is. .topnav is sticky and therefore already the containing block, and the
+   links stay a containing block for .nav-indicator, whose offsetLeft/Width
+   measurements in main.js are read against them either way.
+
+   top/left are both given explicitly rather than leaning on the flex parent's
+   align-items to place an out-of-flow child, which is a spec corner browsers
+   have not always agreed on. */
+.navlinks{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:flex; gap:44px;
+}
+.navlinks a{
+  color:var(--warm-granite);
+  padding:4px 0;
+  transition:color var(--t-fast) var(--ease);
+}
+.navlinks a:hover, .navlinks a.active{ color:var(--bone); }
+/* indicator slides between links instead of each link toggling its own rule */
+.nav-indicator{
+  position:absolute; bottom:-2px; left:0; height:1px; width:0;
+  background:var(--orange); opacity:0;
+  transition:transform .42s var(--ease-out), width .42s var(--ease-out), opacity var(--t-mid) var(--ease);
+}
+.nav-indicator.on{ opacity:1; }
+
+/* ---------- section shell ---------- */
+section{ position:relative; z-index:1; }
+/* width:100% is load-bearing. The full-page sections below are flex columns,
+   and a flex item with `margin: 0 auto` is shrink-to-fit rather than stretched
+   — which quietly held every section's content in to the width of whatever
+   happened to be inside it instead of the measure it is allowed. The
+   max-width still caps it and the auto margins still centre it. */
+.section-inner{ width:100%; max-width:1200px; margin:0 auto; padding:0 40px; }
+
+/* Every section is a full screen. min-height rather than height, deliberately:
+   a section that outgrows the viewport — Projects, whose six cards need about
+   625px and do not fit a 768px-tall laptop — simply gets taller, and the flex
+   centring becomes a no-op the moment it does. Nothing is ever clipped.
+   About sets its own layout below; it has a horizon to leave room for. */
+.awards, .experience, .projects{
+  min-height:calc(100vh - 64px); /* the sticky nav owns the other 64px */
+  display:flex; flex-direction:column; justify-content:center;
+}
+.eyebrow{
+  font-family:var(--mono); font-size:12px; letter-spacing:-.02em; text-transform:uppercase;
+  color:var(--warm-granite); display:flex; align-items:center; gap:8px; margin-bottom:24px;
+}
+.eyebrow .dot{
+  width:6px; height:6px; border-radius:50%; background:var(--orange); display:inline-block;
+  animation:status-pulse 2.8s var(--ease) infinite;
+}
+@keyframes status-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.32; } }
+
+/* ---------- scroll reveal ----------
+   Elements start offset and settle in; main.js adds .in and sets a stagger
+   delay inline. Anything not JS-reached stays visible. */
+[data-reveal]{
+  opacity:0;
+  transform:translateY(20px);
+  transition:opacity var(--t-slow) var(--ease-out), transform var(--t-slow) var(--ease-out);
+}
+[data-reveal="left"]{ transform:translateX(-18px); }
+[data-reveal].in{ opacity:1; transform:none; }
+
+/* ---------- hero / descent: home, about and experience over one scene -------
+   The globe is pinned across all three and the camera flies in as you scroll,
+   so the section changes read as arriving somewhere rather than as breaks. */
+.descent{ position:relative; }
+
+/* Sticky, and it keeps its full flow height — that is load-bearing. The
+   release point is set by the MARGIN box, so a zero-height margin box (the
+   usual `margin-bottom:-100vh` trick) would keep the scene pinned a screen too
+   long. Keeping the flow height and pulling the hero back up over it instead
+   makes the scene unstick exactly as .descent's bottom edge reaches the BOTTOM
+   of the viewport — which is also where the globe's `rise` stops, so the two
+   hand over at the same speed and the motion stays continuous.
+
+   Sized and offset to the band UNDER the sticky nav rather than to the whole
+   viewport: .descent starts 64px down the document, so a plain 100vh box hangs
+   64px below the fold at rest and takes the telemetry readout with it. This
+   way the scene covers exactly the visible area both before and after it
+   sticks — which is also what makes HORIZON_Y in orbit-scene.js a fraction of
+   the area the reader can actually see. */
+.hero-scene{ position:sticky; top:64px; height:calc(100vh - 64px); z-index:0; }
+
+.hero{
+  display:flex; min-height:calc(100vh - 64px); align-items:stretch; position:relative;
+  /* Cancels the scene's flow height, so the hero starts at the top of .descent
+     rather than a screen below it. */
+  margin-top:calc(-100vh + 64px);
+}
+
+/* The scene is a sibling behind both sections now rather than a child of the
+   hero, so .hero and .about would otherwise cover the canvas and swallow every
+   drag. They go transparent to the pointer; their content blocks take it back. */
+/* The three sections the pinned scene sits behind. They go transparent to the
+   pointer so the canvas underneath stays draggable, and their content blocks
+   take events back — Experience needs its back for the row hovers. */
+.hero, .about, .experience{ pointer-events:none; }
+.hero-left, .about .section-inner, .experience .section-inner{ pointer-events:auto; }
+
+.hero-left{
+  flex:0 0 36%;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:0 56px;
+  position:relative; z-index:2;
+  /* Lifts off as the camera descends, and slightly faster than the scroll, so
+     the hero copy is clear before the horizon arrives. */
+  opacity:calc(1 - var(--descent, 0) * 2.2);
+  transform:translateY(calc(var(--descent, 0) * -60px));
+}
+.hero-left::before{
+  content:""; position:absolute; left:40px; top:50%; transform:translateY(-50%);
+  width:1px; height:0; background:var(--ash);
+  animation:rule-grow 1.4s .3s var(--ease-out) forwards;
+}
+@keyframes rule-grow{ to{ height:58%; } }
+
+.hero-left .eyebrow{ margin-bottom:28px; }
+
+.hero-name{
+  font-family:var(--sans); font-weight:500; font-size:clamp(34px, 4.2vw, 52px); line-height:1.02;
+  letter-spacing:-.025em; color:var(--bone); margin:0;
+  min-height:2.1em; /* reserve space so layout doesn't jump while typing */
+}
+.hero-name .name-line{ display:block; }
+.hero-name .cursor{
+  display:inline-block; width:.46ch; height:.86em; vertical-align:-.08em;
+  margin-left:3px; background:var(--orange);
+  animation:blink 1.05s step-end infinite;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+.preferred-name{
+  font-family:var(--mono); font-size:14px; color:var(--pale-stone); margin-top:14px;
+}
+.hero-title{
+  font-family:var(--sans); font-size:16px; color:var(--warm-granite);
+  margin-top:20px; line-height:1.55; max-width:34ch;
+}
+.hero-focus{
+  font-family:var(--mono); font-size:12px; letter-spacing:-.02em; text-transform:uppercase;
+  color:var(--graphite); display:flex; align-items:center; gap:8px; margin-top:12px;
+}
+.hero-focus .dot{
+  width:6px; height:6px; border-radius:50%; background:var(--orange); display:inline-block;
+  animation:status-pulse 2.8s var(--ease) infinite;
+}
+
+/* live status strip — everything on it is computed, nothing is filler copy */
+.hero-status{
+  display:flex; align-items:center; flex-wrap:wrap; gap:10px;
+  margin-top:26px; padding:12px 0;
+  border-top:1px solid var(--ash); border-bottom:1px solid var(--ash);
+  font-family:var(--mono); font-size:11px; letter-spacing:.02em; text-transform:uppercase;
+  color:var(--graphite);
+}
+.hero-status .sep{ color:var(--ash); }
+.hero-status .val{ color:var(--pale-stone); font-variant-numeric:tabular-nums; }
+.hero-status .live{
+  display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--green);
+  animation:status-pulse 2.2s var(--ease) infinite;
+}
+
+.links-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; align-items:center; }
+.btn-dark, .ghost-link{
+  font-family:var(--mono); font-size:12px; text-transform:lowercase; letter-spacing:-.01em;
+  height:38px; display:inline-flex; align-items:center; gap:8px;
+  border-radius:3px;
+  transition:background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+             color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.btn-dark{ background:#1f1d1c; color:var(--bone); padding:0 16px; border:1px solid transparent; cursor:pointer; }
+.btn-dark:hover{ background:#2a2725; transform:translateY(-1px); }
+.ghost-link{ border:1px solid var(--ash); color:var(--pale-stone); padding:0 16px; }
+.ghost-link:hover{ border-color:var(--warm-granite); color:var(--bone); transform:translateY(-1px); }
+.btn-dark .idx, .ghost-link .idx{ color:var(--graphite); }
+.ghost-link:hover .idx{ color:var(--orange); }
+
+/* Now only a positioning context for the telemetry and drag hint. It must not
+   swallow pointer events, or it would block dragging the scene beneath it. */
+.hero-right{ flex:1 1 auto; position:relative; min-width:0; z-index:1; pointer-events:none; }
+#orbit-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+#orbit-canvas.dragging{ cursor:grabbing; }
+
+.orbit-labels{
+  position:absolute; inset:0; pointer-events:none;
+  opacity:0; /* raised by the scene once the arrival animation lands */
+  transition:opacity .5s var(--ease-out);
+}
+.cubesat-label{
+  position:absolute; top:0; left:0; pointer-events:auto;
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:11px; text-transform:lowercase; letter-spacing:-.01em;
+  color:var(--pale-stone); white-space:nowrap; cursor:pointer;
+  padding:3px 7px; border:1px solid transparent; border-radius:3px;
+  transition:color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+             background-color var(--t-fast) var(--ease), opacity .3s var(--ease);
+}
+.cubesat-label::before{ content:"["; color:var(--graphite); opacity:0; transition:opacity var(--t-fast) var(--ease); }
+.cubesat-label::after{ content:"]"; color:var(--graphite); opacity:0; transition:opacity var(--t-fast) var(--ease); }
+.cubesat-label.is-hot,
+.cubesat-label:hover{
+  color:var(--bone); border-color:var(--ash); background:rgba(8,9,13,.6);
+}
+.cubesat-label.is-hot::before, .cubesat-label.is-hot::after,
+.cubesat-label:hover::before, .cubesat-label:hover::after{ opacity:1; }
+
+/* telemetry readout — driven from the live scene, not decoration */
+.telemetry{
+  position:absolute; left:28px; bottom:24px;
+  font-family:var(--mono); font-size:10px; letter-spacing:.02em; text-transform:uppercase;
+  color:var(--graphite); pointer-events:none;
+  display:flex; flex-direction:column; gap:5px;
+  border-left:1px solid var(--ash); padding-left:12px;
+  opacity:0; animation:fade-up 1s 1.9s var(--ease-out) forwards;
+}
+@keyframes fade-up{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+.tel-row{ display:flex; gap:8px; }
+.tel-k{ color:var(--graphite); }
+.tel-v{ color:var(--pale-stone); font-variant-numeric:tabular-nums; }
+.tel-v.hot{ color:var(--green); }
+
+.drag-hint{
+  position:absolute; bottom:24px; right:28px;
+  font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.02em;
+  color:var(--graphite); pointer-events:none;
+  opacity:0; animation:fade-up 1s 2.1s var(--ease-out) forwards;
+}
+/* The hint stops being true the moment the descent takes the camera off
+   OrbitControls, so it fades out early. It has to fade from a parent: the
+   entrance above is fill:forwards, and an animation outranks any opacity set
+   on the element itself. */
+.hint-wrap{ opacity:calc(1 - var(--descent, 0) * 5); }
+
+/* ---------- about ----------
+   No border-top: the descent runs one continuous sky from the hero into here,
+   and a hairline across it would cut the scene in half.
+
+   Top-weighted rather than centred, because the bottom of the viewport is
+   spoken for — --horizon-band is the strip the globe's limb sits in, and the
+   skills marquee is pushed down to ride just above it. */
+.about{
+  min-height:calc(100vh - 64px);
+  display:flex; flex-direction:column;
+  padding:56px 0 var(--horizon-band);
+}
+/* Wider than the 1200px the rest of the page uses, so the portrait can sit
+   further out to the left instead of starting a third of the way across a
+   large screen. */
+.about .section-inner{ max-width:1560px; }
+
+/* Portrait | copy + education | vertical tool marks. The copy sits in the
+   middle, above the horizon the descent lands on. */
+.about-grid{
+  display:grid; grid-template-columns:420px minmax(0,1fr) 230px;
+  gap:56px; align-items:start;
+}
+
+/* Portrait only. It used to carry a based/program/focus/status block below it;
+   that came out, and the photo was grown into the height it freed rather than
+   leaving a gap — so this column, and About's total height, are unchanged. */
+.about-plate{ display:flex; flex-direction:column; }
+.about-photo{
+  height:440px; border:1px solid var(--ash); border-radius:10px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+  background:var(--carbon);
+  transition:border-color var(--t-mid) var(--ease);
+}
+.about-photo:hover{ border-color:var(--warm-granite); }
+.about-photo img{ width:100%; height:100%; object-fit:cover; }
+
+.about-text{ font-size:16px; line-height:1.6; color:var(--pale-stone); max-width:640px; }
+.about-text p{ margin:0 0 16px; }
+.about-text .lead{ color:var(--bone); font-size:18px; margin-bottom:24px; }
+
+/* ---------- education, inside About ----------
+   It had a full section of its own; Krittin folded it back into About, so it
+   is a compact list at the end of the bio column. It costs About no height:
+   the dossier plate opposite is the taller of the two columns. */
+.about-edu{ margin-top:28px; padding-top:20px; border-top:1px solid var(--ash); }
+.about-edu-label{
+  font-family:var(--mono); font-size:10px; letter-spacing:.02em;
+  text-transform:uppercase; color:var(--graphite); margin-bottom:12px;
+}
+.edu-row{ display:flex; flex-direction:column; gap:2px; margin-bottom:12px; }
+.edu-row:last-child{ margin-bottom:0; }
+.edu-inst{ font-family:var(--sans); font-size:15px; font-weight:500; color:var(--bone); }
+.edu-detail{ font-family:var(--mono); font-size:11px; color:var(--warm-granite); }
+
+/* ---------- awards & certificates ---------- */
+.awards{ padding:120px 0; }
+.awards-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1px; background:var(--ash); border:1px solid var(--ash); border-radius:10px;
+  overflow:hidden; margin-top:8px;
+}
+.award-card{
+  background:var(--void-edge); padding:24px; display:flex; flex-direction:column; gap:14px;
+}
+.award-media{
+  height:120px; border:1px solid var(--ash); border-radius:6px; background:var(--carbon);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--graphite);
+}
+.award-name{ font-family:var(--sans); font-size:15px; font-weight:500; color:var(--bone); }
+
+/* ---------- experience ----------
+   No border-top: About runs into this one over the same continuous sky, and a
+   hairline across it would cut the two apart. Projects keeps its rule. */
+.experience{ padding:120px 0; }
+
+/* Wider than the 1200px default, matching About — the rows read as a table and
+   want the room, and lining them up with the About columns above keeps the two
+   sections in the same frame. */
+.experience .section-inner{ max-width:1560px; }
+.exp-list{ display:flex; flex-direction:column; }
+
+/* At rest a row is barely tinted, so the starfield reads straight through it.
+   On hover it inverts to a near-solid light panel and its highlights unfold —
+   black-and-white, which is the whole point of the treatment. */
+.exp-row{
+  position:relative;
+  padding:0 20px;
+  background:rgba(255,255,255,.022);
+  transition:background-color var(--t-mid) var(--ease);
+}
+.exp-head{
+  display:grid; grid-template-columns:52px 1.05fr 1.5fr auto; gap:28px;
+  padding:22px 0; align-items:center;
+}
+/* the rule above each row draws itself in on reveal — reads like a
+   schedule printing out rather than four boxes fading up together */
+.exp-row::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:1px;
+  background:var(--ash); transform:scaleX(0); transform-origin:left center;
+  transition:transform 1s var(--ease-out);
+}
+.exp-row.in::before{ transform:scaleX(1); }
+.exp-row:last-child::after{
+  content:""; position:absolute; bottom:0; left:0; right:0; height:1px;
+  background:var(--ash); transform:scaleX(0); transform-origin:left center;
+  transition:transform 1s .12s var(--ease-out);
+}
+.exp-row:last-child.in::after{ transform:scaleX(1); }
+
+.exp-index{ font-family:var(--mono); font-size:12px; color:var(--graphite); }
+.exp-meta{ display:flex; align-items:baseline; gap:16px; justify-content:flex-end; white-space:nowrap; }
+.exp-tag{ font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--green); }
+.exp-date{ font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite); }
+.exp-role-block{ display:flex; flex-direction:column; gap:5px; }
+.exp-role{ font-family:var(--sans); font-size:22px; color:var(--bone); font-weight:500; letter-spacing:-.01em; }
+.exp-org{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); }
+.exp-summary{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); line-height:1.5; }
+
+/* 0fr -> 1fr is the only way to transition to an auto height. Browsers without
+   it simply snap the panel open, which loses nothing but the ease. */
+.exp-detail{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows var(--t-mid) var(--ease-out);
+}
+.exp-row:hover .exp-detail{ grid-template-rows:1fr; }
+.exp-highlights{
+  list-style:none; margin:0; overflow:hidden;
+  padding:0 0 0 80px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.exp-highlights li{
+  font-family:var(--sans); font-size:13px; color:var(--warm-granite); line-height:1.55;
+  padding-left:14px; position:relative;
+}
+.exp-highlights li:last-child{ margin-bottom:22px; }
+.exp-highlights li::before{ content:"—"; position:absolute; left:0; color:var(--graphite); }
+
+/* ---- the lit state ----
+   One near-solid light panel and the type flips to the void colour. --green
+   is a display colour picked against black, so it is swapped for a darker
+   ink here rather than carried over unreadable. */
+.exp-row:hover{ background:rgba(250,250,250,.95); }
+.exp-row:hover .exp-role{ color:var(--void); }
+.exp-row:hover .exp-org,
+.exp-row:hover .exp-summary,
+.exp-row:hover .exp-highlights li{ color:rgba(6,7,10,.72); }
+.exp-row:hover .exp-index,
+.exp-row:hover .exp-date,
+.exp-row:hover .exp-highlights li::before{ color:rgba(6,7,10,.5); }
+.exp-row:hover .exp-tag{ color:#2f6a20; }
+
+/* ---------- projects ---------- */
+/* Top-weighted like About, and for the same kind of reason: the project field
+   is one fixed-height diorama and the 120px rhythm the other sections keep was
+   eating the vertical room it needs to fit a laptop screen. */
+/* overflow:hidden is load-bearing, not tidiness. The Moon is deliberately
+   larger than the field and hangs off its bottom-right corner — 7% of the
+   field's width past the right edge and 52% of its own diameter below. Left
+   unclipped that reaches past the viewport on anything at or under ~1200px
+   wide (a horizontal scrollbar on the whole page) and spills down over the
+   Awards cards, which are transparent and would show it through. Clipping at
+   the SECTION rather than at .proj-field is the point: it still leaves the
+   ~100px of section above the field — the top padding plus the eyebrow — for
+   the launch rocket to fly in through. */
+.projects{ padding:56px 0 40px; border-top:1px solid var(--ash); overflow:hidden; }
+.projects-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; }
+.proj-card{
+  border:1px solid var(--ash); border-radius:10px; overflow:hidden;
+  display:flex; flex-direction:column; cursor:pointer;
+  transition:border-color var(--t-mid) var(--ease), transform var(--t-mid) var(--ease-out),
+             background-color var(--t-mid) var(--ease);
+}
+.proj-card:hover{
+  border-color:var(--warm-granite);
+  background:rgba(255,255,255,.018);
+  transform:translateY(-4px);
+}
+.proj-media{
+  position:relative;
+  height:170px; background:var(--carbon); display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--graphite);
+  border-bottom:1px solid var(--ash); overflow:hidden;
+}
+/* a single scan line crosses the media well on hover — an instrument
+   readout gesture, not a decorative shimmer */
+.proj-media::after{
+  content:""; position:absolute; left:0; right:0; top:0; height:1px;
+  background:var(--orange); opacity:0;
+  transform:translateY(0);
+  transition:opacity var(--t-fast) var(--ease);
+}
+.proj-card:hover .proj-media::after{
+  opacity:.5;
+  animation:scan 1.6s var(--ease) infinite;
+}
+@keyframes scan{ from{ transform:translateY(0); } to{ transform:translateY(170px); } }
+.proj-media img, .proj-media video{
+  width:100%; height:100%; object-fit:cover;
+  transition:transform .7s var(--ease-out);
+}
+.proj-card:hover .proj-media img, .proj-card:hover .proj-media video{ transform:scale(1.04); }
+.proj-body{ padding:20px; display:flex; flex-direction:column; gap:8px; flex:1; }
+.proj-title{
+  font-family:var(--sans); font-size:16px; color:var(--bone); font-weight:500;
+  transition:color var(--t-fast) var(--ease);
+}
+.proj-status{
+  display:inline-flex; align-items:center; margin-left:8px; padding:2px 9px;
+  border:1px solid var(--ash); border-radius:999px;
+  font-family:var(--mono); font-size:10px; font-weight:400; letter-spacing:.02em;
+  text-transform:uppercase; color:var(--orange); vertical-align:middle;
+}
+.proj-desc{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); line-height:1.55; flex:1; }
+.proj-detail-cue{
+  display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px;
+  text-transform:uppercase; color:var(--graphite); margin-top:auto; padding-top:12px;
+  transition:color var(--t-fast) var(--ease);
+}
+.proj-detail-cue .arr{ display:inline-block; transition:transform var(--t-mid) var(--ease-out); }
+.proj-card:hover .proj-detail-cue{ color:var(--bone); }
+.proj-card:hover .proj-detail-cue .arr{ transform:translateX(5px); }
+
+/* ---------- projects carousel (experimental — see CLAUDE.md) ----------
+   Six cards on a fixed hexagonal ring (rotateY 0/60/120/.../300, all at the
+   same --carousel-radius), spun by rotating .carousel-track as a whole
+   rather than moving each card individually — initProjectCarousel
+   (js/main.js) sets one inline `transform` on the track, never on an item.
+   The item currently facing the viewer is tracked in JS as .active rather
+   than recomputed from the angle, so drag and click always agree exactly
+   on which one is "front". --carousel-radius is a custom property (not a
+   literal translateZ repeated six times) purely so the responsive block
+   can shrink one number instead of six. */
+.proj-carousel{
+  --carousel-radius:340px;
+  margin-top:8px; display:flex; flex-direction:column; align-items:center;
+}
+.carousel-stage{
+  width:100%; height:380px; perspective:1400px;
+  display:flex; align-items:center; justify-content:center;
+}
+.carousel-track{
+  position:relative; width:240px; height:300px;
+  transform-style:preserve-3d; cursor:grab;
+  transition:transform var(--t-slow) var(--ease-out);
+  /* Leaves vertical page scroll to the browser; only horizontal touch
+     movement is claimed for the drag-to-rotate gesture. */
+  touch-action:pan-y;
+}
+.carousel-track.dragging{ transition:none; cursor:grabbing; }
+.carousel-item{
+  position:absolute; inset:0;
+  border:1px solid var(--ash); border-radius:10px; overflow:hidden;
+  background:rgba(255,255,255,.022);
+  opacity:.4;
+  transition:opacity var(--t-mid) var(--ease), background-color var(--t-mid) var(--ease),
+             border-color var(--t-mid) var(--ease);
+}
+.carousel-item:nth-child(1){ transform:rotateY(0deg)   translateZ(var(--carousel-radius)); }
+.carousel-item:nth-child(2){ transform:rotateY(60deg)  translateZ(var(--carousel-radius)); }
+.carousel-item:nth-child(3){ transform:rotateY(120deg) translateZ(var(--carousel-radius)); }
+.carousel-item:nth-child(4){ transform:rotateY(180deg) translateZ(var(--carousel-radius)); }
+.carousel-item:nth-child(5){ transform:rotateY(240deg) translateZ(var(--carousel-radius)); }
+.carousel-item:nth-child(6){ transform:rotateY(300deg) translateZ(var(--carousel-radius)); }
+.carousel-item.active{
+  opacity:1; background:rgba(250,250,250,.95); border-color:transparent;
+}
+.carousel-link{
+  display:flex; flex-direction:column; height:100%;
+  pointer-events:none; /* the track handles drag; JS re-enables the click on the active card */
+}
+.carousel-item.active .carousel-link{ pointer-events:auto; cursor:pointer; }
+.carousel-model{
+  height:170px; background:var(--carbon); display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:0 16px;
+  font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--graphite);
+  border-bottom:1px solid var(--ash);
+}
+.carousel-item.active .carousel-model{ background:transparent; border-color:rgba(6,7,10,.14); }
+.carousel-title{
+  padding:16px 18px; font-family:var(--sans); font-size:15px; font-weight:500;
+  color:var(--bone); line-height:1.4; flex:1;
+  transition:color var(--t-fast) var(--ease);
+}
+.carousel-item.active .carousel-title{ color:var(--void); }
+.carousel-nav{
+  display:flex; align-items:center; gap:20px; margin-top:28px; width:100%; max-width:520px;
+}
+.carousel-arrow{
+  flex:none; width:38px; height:38px; border-radius:3px; border:1px solid var(--ash);
+  background:transparent; color:var(--pale-stone);
+  font-family:var(--mono); font-size:14px; cursor:pointer;
+  transition:border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.carousel-arrow:hover{ border-color:var(--warm-granite); color:var(--bone); }
+.carousel-desc{
+  flex:1; text-align:center; font-family:var(--sans); font-size:13px;
+  color:var(--warm-granite); line-height:1.5;
+}
+.carousel-hint{
+  margin-top:16px; font-family:var(--mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:.02em; color:var(--graphite);
+}
+
+/* ---------- projects field (the live Projects section) ----------
+   One fixed-scatter diorama instead of cards: still images (plus, on the
+   Moon, real 3D objects) placed at explicit coordinates over open sky, each
+   with nothing but its title under it.
+
+   - The objects in space are placed against .proj-field — --x is the
+     model's horizontal CENTRE, --y its TOP edge, both percentages of the
+     field. Top rather than centre because it makes "does this clear the
+     Moon's edge" arithmetic something you can do in your head.
+   - There used to be a second coordinate system (--mx/--my, percentages of
+     .proj-moon's own box) welding Sky Crane and Lunar Hopper to the limb.
+     Both are real 3D now — a lander fixed to the surface and a trajectory
+     arc, respectively, positioned by js/moon-scene.js, not CSS — so that
+     system is gone along with them. Only the CMG cubesat's orbit lives on
+     the Moon alongside them, and it was never on this system either (per
+     Krittin's request it does not stay welded to one spot at all).
+
+   --obj-scale is the single dial for "everything is too big for this screen".
+   The positions are percentages so they rescale on their own; only the object
+   footprints are in px, and this is what shrinks them. */
+/* The one section that drops the shared measure entirely. About and Experience
+   widen to 1560px; this goes edge to edge, because the objects are scattered
+   rather than set in a column and holding them inside 1200px bunched them into
+   the middle third of a wide screen. The 48px gutter is all that is left of
+   the shell. */
+.projects .section-inner{
+  display:flex; flex-direction:column; flex:1 1 auto;
+  max-width:none; padding:0 48px;
+}
+
+.proj-field{
+  --obj-scale:1;
+  /* Owned here, not on .proj-moon, so .proj-field's own min-height can react
+     to it too (see below). The Moon moved from the right edge to the CENTRE
+     of the field (Krittin: "make moon... bigger and put in the middle
+     instead"), with the two rockets now standing to its right and the CBF
+     robot staying roughly where it was to its left — so the Moon no longer
+     gets to claim a whole half of the width the way it did when it owned one
+     edge; 43vw leaves real clearance on both sides instead of one — the CBF
+     floor on the left needs roughly 28% of the field for its own footprint,
+     so the Moon's left edge (50% − half its width) has to stay clear of that
+     without Krittin having to also move the CBF floor. Still sized off
+     whichever of viewport WIDTH or HEIGHT is more restrictive, for the same
+     "must fit on one screen" reason as before. */
+  /* Bigger again ("make moon bigger!!") — width share, height budget, floor
+     and ceiling all went up. The two rockets moved further right to keep
+     clear of it (see the markup comment in index.html). */
+  --moon-d:calc(clamp(550px, min(47vw, calc(100vh - 100px)), 1150px) * var(--obj-scale));
+  position:relative; flex:1 1 auto; margin-top:4px;
+  /* Tall enough for the Moon to sit fully inside without .projects' own
+     overflow:hidden clipping it — which used to be the point (see .proj-moon),
+     but now clips an object that has to stay fully visible (the CMG cubesat's
+     orbit swings behind the Moon at every angle, not just the front). Because
+     --moon-d is itself bounded to a fraction of viewport height, this stays
+     within one screen on any realistic viewport instead of forcing the
+     section past it. */
+  min-height:max(480px, calc(var(--moon-d) + 48px));
+}
+
+/* --- project index (small side list) --- */
+/* A guaranteed-clickable fallback to the scatter, not a replacement for it —
+   see the markup comment in index.html. Deliberately plain: no art, no
+   hover-lift, just titles, so it doesn't visually compete with the diorama
+   for attention. z-index is only there because the trajectories/Moon both
+   also occupy the top-left-ish region at some viewport sizes. */
+.proj-index{
+  position:absolute; left:0; top:0; z-index:3;
+  display:flex; flex-direction:column; gap:7px;
+  max-width:190px; padding:14px 16px;
+  border:1px solid var(--ash); border-radius:10px; background:rgba(8,9,13,.55);
+}
+.proj-index-eyebrow{
+  display:flex; align-items:center; gap:6px; margin-bottom:2px;
+  font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--graphite);
+}
+.proj-index-eyebrow .dot{ width:5px; height:5px; border-radius:50%; background:var(--orange); }
+.proj-index a{
+  font-family:var(--sans); font-size:12.5px; line-height:1.3;
+  color:var(--pale-stone); text-decoration:none;
+  transition:color var(--t-fast) var(--ease);
+}
+.proj-index a:hover{ color:var(--bone); }
+
+/* --- the objects --- */
+.proj-obj{
+  position:absolute; left:var(--x); top:var(--y); transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  text-decoration:none;
+  transition:opacity var(--t-slow) var(--ease-out);
+}
+.proj-obj-model{
+  position:relative;
+  width:calc(var(--w) * var(--obj-scale));
+  aspect-ratio:var(--ar, 1);
+  display:flex; align-items:center; justify-content:center;
+  /* Two separate properties, deliberately. The entrance offset rides on
+     `translate` and the hover lift on `transform`, so the .lit rule that
+     clears the entrance cannot also out-specify the hover — which it would,
+     being four classes deep against the hover's two. */
+  transition:transform var(--t-mid) var(--ease-out), translate var(--t-slow) var(--ease-out);
+}
+.proj-obj:hover .proj-obj-model{ transform:translateY(-5px); }
+
+/* Placeholder until the still exists. Same language as every other empty well
+   on the site: hairline --ash on --carbon, mono caption, no dashes or icons. */
+.proj-ph{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  padding:0 10px;
+  border:1px solid var(--ash); border-radius:10px; background:var(--carbon);
+  font-family:var(--mono); font-size:9px; letter-spacing:.02em;
+  text-transform:uppercase; color:var(--graphite);
+}
+/* The floor IS this one's visual, so the placeholder must not cover it. */
+.proj-obj--ground .proj-ph{ background:transparent; border:0; align-items:flex-start; }
+
+/* Starts hidden and is revealed by initProjectField once the image actually
+   decodes, so a missing file shows the placeholder rather than a broken-image
+   glyph. Dropping the six PNGs in is therefore the whole handoff — no markup
+   change, no rebuild. */
+.proj-art{
+  position:relative; z-index:1;
+  width:100%; height:100%; object-fit:contain;
+  opacity:0; transition:opacity var(--t-slow) var(--ease-out);
+}
+.proj-obj.has-art .proj-art{ opacity:1; }
+.proj-obj.has-art .proj-ph{ display:none; }
+
+/* Mobile/reduced-motion-only fallback for the three Moon-scene projects
+   (Hybrid CMG, Sky Crane, Lunar Hopper) — see the markup comments in
+   index.html. Each live version is real 3D in js/moon-scene.js; these plain
+   stills only ever show up in the one layout where the Moon canvas doesn't
+   mount at all. */
+.proj-obj--moon-fallback{ display:none; }
+
+.proj-obj-label{
+  position:relative; text-align:center;
+  max-width:calc(var(--w) * var(--obj-scale) + 70px);
+  font-family:var(--sans); font-size:15px; font-weight:500; line-height:1.35;
+  color:var(--pale-stone);
+  transition:color var(--t-fast) var(--ease);
+}
+/* The rule draws itself in under the title — the same gesture the experience
+   rows use, rather than a glow or a box. */
+.proj-obj-label::after{
+  content:""; position:absolute; left:0; right:0; bottom:-5px; height:1px;
+  background:var(--bone); transform:scaleX(0); transform-origin:left;
+  transition:transform var(--t-mid) var(--ease-out);
+}
+.proj-obj:hover .proj-obj-label{ color:var(--bone); }
+.proj-obj:hover .proj-obj-label::after{ transform:scaleX(1); }
+
+/* --- the Moon --- */
+/* A live WebGL body (js/moon-scene.js), not an image: it spins on its own and
+   can be dragged, in the hero globe's treatment. The box is square, and the
+   scene's orthographic camera is sized (FRUSTUM_R in js/moon-scene.js) so the
+   visible disc inscribes it — but unlike before, nothing in CSS depends on
+   knowing that fraction any more. Every object on the Moon (the CMG cubesat's
+   orbit, the Sky Crane lander, the Lunar Hopper trajectory) is real 3D
+   positioned by js/moon-scene.js itself, not CSS percentages, so changing
+   FRUSTUM_R is now purely that file's own concern.
+
+   The Moon is sized against --moon-d, owned by .proj-field so its min-height
+   can react to the same number (see there).
+
+   Fully on screen, not hanging off an edge — .proj-field's own box is tall
+   enough to fit it (see min-height there). This is also what fixed the CMG
+   cubesat going invisible on the far side of its orbit: that used to be real
+   geometry rendering correctly into a canvas whose own box was clipped by
+   .projects' overflow:hidden.
+
+   Centred in the field now (left/top 50% + translate -50%/-50%), not
+   anchored to the right edge — Krittin moved it here explicitly so the two
+   rockets could take the right side instead, "put in the middle." True
+   centring on both axes, not just horizontal: .proj-field's min-height
+   already guarantees a few px of margin above and below (see there), so
+   nothing is lost by centring vertically too. */
+.proj-moon{
+  position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+  width:var(--moon-d); height:var(--moon-d);
+  pointer-events:none; /* scenery; the canvas and its objects take it back */
+}
+.moon-canvas{
+  display:block; width:100%; height:100%;
+  pointer-events:auto; cursor:grab; touch-action:none;
+}
+.moon-canvas.dragging{ cursor:grabbing; }
+/* All three of the CMG cubesat, the Sky Crane lander and the Lunar Hopper
+   trajectory's labels — positioned every frame by moon-scene.js from their
+   real 3D positions, not from CSS percentages; there is no more mx/my
+   placement system on the Moon. Same visual language as the hero's cubesat
+   labels — .cubesat-label is shared, not duplicated. */
+.moon-labels{
+  position:absolute; inset:0; pointer-events:none;
+  opacity:0; /* raised by the scene once its own arrival animation lands */
+  transition:opacity .5s var(--ease-out);
+}
+
+/* --- the CBF floor --- */
+.ground-plane{ position:absolute; inset:0; width:100%; height:100%; }
+/* The robot is a small object standing ON a wide floor, not a wide image.
+   Left to the shared .proj-art rule it would be fitted to the full 300×160
+   box and read as a picture of a robot rather than a robot on a plane, so it
+   is pinned to a patch near the front of the plane instead — roughly where
+   the dashed path starts. Nudge left/bottom to move it along the line. */
+.proj-obj--ground .proj-art{
+  position:absolute; left:32%; bottom:13%;
+  width:24%; height:auto; max-height:58%;
+  object-position:bottom; transform:translateX(-50%);
+}
+
+/* --- entrance --- */
+/* Gated behind .js-field, which initProjectField adds, so that a JS failure
+   leaves the whole field plainly visible instead of blank. */
+.proj-field.js-field .proj-obj{ opacity:0; }
+.proj-field.js-field .proj-obj .proj-obj-model{ translate:0 14px; }
+.proj-field.js-field .proj-obj.lit{ opacity:1; }
+.proj-field.js-field .proj-obj.lit .proj-obj-model{ translate:0 0; }
+
+/* Now that the field runs edge to edge, WIDTH is the binding constraint, not
+   height — the objects are spread horizontally and it is the horizontal gaps
+   that close first. The positions are percentages and rescale themselves; only
+   the px footprints need help, which is all --obj-scale touches. The
+   max-height rule only shortens the field, so a short screen compresses the
+   vertical gaps rather than shrinking anything. */
+@media (max-width: 1500px){ .proj-field{ --obj-scale:.88; } }
+@media (max-width: 1250px){ .proj-field{ --obj-scale:.76; } }
+@media (max-height: 800px){ .proj-field{ min-height:480px; } }
+
+/* ---------- skills (lives inside About, not its own section) ---------- */
+.sprite{ position:absolute; width:0; height:0; overflow:hidden; }
+
+/* Third column of the About grid: a slow vertical drift down the right-hand
+   side rather than a horizontal band parked under the bio. */
+.about-skills{ display:flex; flex-direction:column; }
+.skills-label{
+  font-family:var(--mono); font-size:11px; letter-spacing:.02em; text-transform:uppercase;
+  color:var(--graphite); display:flex; align-items:center; gap:8px; margin-bottom:24px;
+}
+.skills-label .dot{ width:5px; height:5px; border-radius:50%; background:var(--green); }
+
+/* Stroke-only, inheriting the tag's text colour, so a mark brightens with
+   its label on hover instead of sitting there as a foreign coloured badge. */
+.skill-ico{
+  width:22px; height:22px; flex:none;
+  fill:none; stroke:currentColor; stroke-width:1.4;
+  stroke-linecap:butt; stroke-linejoin:miter;
+  color:var(--warm-granite);
+  transition:color var(--t-fast) var(--ease);
+}
+.skill-tag:hover .skill-ico{ color:var(--green); }
+
+/* No rules above or below: the band sits over open sky at the foot of About,
+   and hairlines there would divide a section that is meant to run continuously
+   into the horizon. */
+.marquee{
+  overflow:hidden; padding:24px 0;
+  /* fade the tags out at both edges so they don't get sliced by the viewport */
+  -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+          mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+}
+.marquee-track{
+  display:flex; gap:16px; width:max-content;
+  animation:marquee-scroll 46s linear infinite;
+}
+.marquee:hover .marquee-track{ animation-play-state:paused; }
+@keyframes marquee-scroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+/* Vertical variant, used in About. Same duplicated list, same seamless trick,
+   turned through 90°: the track is twice the visible run, and animating from
+   -50% to 0 walks it DOWNWARD and lands exactly where it started. Slower than
+   the horizontal one — it is peripheral here, not the main event. */
+.marquee-v{
+  height:440px; padding:0; /* matches the portrait opposite */
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 10%, #000 90%, transparent 100%);
+          mask-image:linear-gradient(180deg, transparent 0, #000 10%, #000 90%, transparent 100%);
+}
+.marquee-v .marquee-track{
+  flex-direction:column; align-items:flex-start;
+  width:auto; height:max-content;
+  animation:marquee-scroll-v 64s linear infinite;
+}
+@keyframes marquee-scroll-v{ from{ transform:translateY(-50%); } to{ transform:translateY(0); } }
+.skill-tag{
+  font-family:var(--mono); font-size:14px; text-transform:uppercase; letter-spacing:-.01em;
+  color:var(--bone); border:1px solid var(--ash); border-radius:999px; padding:11px 22px 11px 17px;
+  white-space:nowrap; display:flex; align-items:center; gap:11px;
+  transition:border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+             transform var(--t-fast) var(--ease-out);
+}
+.skill-tag:hover{ border-color:var(--green); transform:translateY(-2px); }
+
+/* ---------- shared: project detail pages ---------- */
+.back-link{
+  display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px;
+  text-transform:lowercase; color:var(--warm-granite); margin:40px auto 0; max-width:1200px; padding:0 40px;
+  transition:color var(--t-fast) var(--ease);
+}
+.back-link:hover{ color:var(--bone); }
+.detail-header{ max-width:1200px; margin:0 auto; padding:24px 40px 0; }
+/* Unique per detail page, so these can be named statically — the index
+   side is tagged per-click in main.js. */
+.detail-title{
+  font-family:var(--sans); font-weight:500; font-size:clamp(28px,4vw,44px);
+  letter-spacing:-.02em; margin:0 0 12px;
+  view-transition-name:proj-title;
+}
+.detail-sub{ font-family:var(--sans); font-size:16px; color:var(--warm-granite); max-width:640px; line-height:1.55; }
+.detail-media{ max-width:1200px; margin:40px auto 0; padding:0 40px; }
+.detail-media-inner{
+  min-height:320px; max-height:520px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+  view-transition-name:proj-media;
+}
+.detail-media-inner img, .detail-media-inner video{ width:100%; height:100%; object-fit:cover; }
+.detail-body{ max-width:1200px; margin:0 auto; padding:56px 40px 96px; display:grid; grid-template-columns:280px 1fr; gap:56px; }
+.facts{ display:flex; flex-direction:column; gap:28px; }
+.fact-block{ display:flex; flex-direction:column; gap:8px; }
+.fact-label{ font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite); }
+.fact-value{ font-family:var(--sans); font-size:14px; color:var(--bone); line-height:1.5; }
+.tag-row{ display:flex; flex-wrap:wrap; gap:8px; }
+.tag{ font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--bone); border:1px solid var(--ash); border-radius:999px; padding:6px 14px; }
+.paper-btn{
+  display:inline-flex; align-items:center; gap:8px; background:#1f1d1c; color:var(--bone);
+  font-family:var(--sans); font-size:14px; padding:0 16px; height:40px; border-radius:3px; margin-top:4px;
+  transition:background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.paper-btn:hover{ background:#2a2725; transform:translateY(-1px); }
+.desc{ font-size:16px; line-height:1.65; color:var(--pale-stone); }
+.desc p{ margin:0 0 20px; }
+.desc h3{ font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
+.desc h3:first-child{ margin-top:0; padding-top:0; border-top:none; }
+
+footer{
+  position:relative; z-index:1;
+  border-top:1px solid var(--ash); padding:56px 40px; text-align:center;
+  font-family:var(--mono); font-size:11px; color:var(--graphite); text-transform:uppercase;
+}
+
+/* ---------- responsive ---------- */
+
+/* About's three columns are two fixed widths either side of a flexible middle,
+   so the middle is what absorbs every pixel the viewport loses. At the full
+   420/230 the bio column falls to ~260px by 1100px wide and ~160px by 1000px —
+   unreadable, and well above the 900px stacking breakpoint that would have
+   rescued it. Narrowing the two fixed columns keeps all three in play down to
+   the stack. */
+@media (max-width: 1200px){
+  .about-grid{ grid-template-columns:280px minmax(0,1fr) 180px; gap:32px; }
+  .about-photo{ height:400px; }
+  .marquee-v{ height:400px; }
+  .skill-tag{ font-size:13px; padding:9px 16px 9px 13px; gap:9px; }
+  .skill-ico{ width:19px; height:19px; }
+}
+
+@media (max-width: 1100px){
+  .hero-left{ flex:0 0 42%; padding:0 40px; }
+  .hero-left::before{ left:24px; }
+}
+@media (max-width: 900px){
+  /* No descent on the stacked layout. There is too little vertical room to
+     give a horizon a quarter of it, and About's stacked content would end up
+     sitting on top of a solid planet. The scene goes back to covering the hero
+     and nothing else: absolute inside .descent, whose top edge IS the hero's,
+     with the hero's compensating negative margin removed. orbit-scene.js pins
+     the descent at 0 below this same breakpoint and pans the globe down into
+     the lower block so it stays out from behind the name. */
+  .hero{ flex-direction:column; min-height:calc(100vh - 64px); margin-top:0; }
+  .hero-left{ flex:0 0 auto; width:100%; padding:72px 24px 32px; }
+  .hero-left::before{ display:none; }
+  .hero-right{ flex:1 1 auto; width:100%; height:auto; min-height:0; }
+  /* left/right are load-bearing: switching from sticky to absolute drops the
+     block-level auto width and the box would shrink to fit, taking the canvas
+     (which is inset:0 against it) to zero. */
+  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - 64px); }
+  .telemetry{ left:20px; bottom:18px; }
+  .drag-hint{ right:20px; bottom:18px; }
+  .about, .awards, .experience, .projects{ padding:80px 0; }
+  .about .section-inner{ max-width:1200px; }
+  .about-grid{ grid-template-columns:1fr; gap:40px; }
+  .about-plate{ max-width:320px; }
+  .about-photo{ height:380px; }
+  /* A vertical marquee makes no sense once the columns stack — it goes back to
+     the horizontal band, reusing the original keyframes. */
+  .marquee-v{
+    height:auto; padding:24px 0;
+    -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+            mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  }
+  .marquee-v .marquee-track{
+    flex-direction:row; align-items:center; width:max-content; height:auto;
+    animation:marquee-scroll 46s linear infinite;
+  }
+  .exp-head{ grid-template-columns:1fr; gap:8px; }
+  .exp-meta{ justify-content:flex-start; }
+  .exp-highlights{ padding-left:0; }
+  /* No hover on a touch screen, so the detail is simply always open. */
+  .exp-detail{ grid-template-rows:1fr; }
+  .projects-grid{ grid-template-columns:1fr; }
+  /* Smaller ring so the side cards clear a phone-width viewport instead of
+     overhanging it — the perspective box itself stays full-width, only the
+     radius and card footprint shrink. Not checked on a real handset yet. */
+  .proj-carousel{ --carousel-radius:210px; }
+  .carousel-stage{ height:300px; }
+  .carousel-track{ width:180px; height:230px; }
+  .carousel-model{ height:120px; }
+  .carousel-nav{ max-width:100%; }
+  /* No diorama on a phone: a fixed scatter needs width the viewport does not
+     have, and the Moon would take most of it. Everything goes static and
+     stacks in one column instead, the disc drops out entirely (see
+     .proj-moon below), and its three fallback stills rejoin this list in
+     plain document order along with the rockets and the CBF robot. */
+  .proj-field{
+    position:static; min-height:0; display:flex; flex-direction:column;
+    align-items:center; gap:36px; padding-top:8px;
+  }
+  .proj-obj{ position:static; transform:none; }
+  .proj-obj-model{ max-width:78vw; }
+  .proj-obj-label{ max-width:78vw; }
+  /* The whole Moon box goes now, not just the canvas: it no longer holds any
+     .proj-obj children of its own (the CMG cubesat, Sky Crane and Lunar
+     Hopper are all real 3D positioned by moon-scene.js, which never mounts
+     here — see below), so an empty absolutely-positioned box left behind
+     would do nothing but take up dead space. index.html mounts the Moon scene
+     only when the canvas has a non-zero width, so hiding it here is also what
+     keeps a second WebGL context and its bake off a phone. Their three flat
+     fallback stills come back in the main stacked list instead (in document
+     order, alongside the rockets and the CBF robot) — the one layout where
+     they have to. */
+  .proj-moon{ display:none; }
+  .proj-obj--moon-fallback{ display:flex; }
+  /* Redundant here — this stacked column already is a plain clickable list
+     of every project — and there is no open corner to tuck it into once
+     everything is one flowed column instead of a scatter. */
+  .proj-index{ display:none; }
+  .projects .section-inner{ padding-left:20px; padding-right:20px; }
+  .detail-body{ grid-template-columns:1fr; }
+  .section-inner, .detail-header, .detail-media, .detail-body, .back-link{ padding-left:20px; padding-right:20px; }
+  .topnav{ padding:0 20px; }
+  /* Back to sitting at the right-hand end: centred, five links plus the
+     wordmark do not fit across a phone and would overlap it. The gap is
+     tighter than it was because "education" is three characters wider than
+     the "skills" link it replaced. */
+  .navlinks{
+    position:relative; left:auto; top:auto; transform:none;
+    gap:12px; font-size:11px;
+  }
+}
+
+/* ---------- reduced motion ----------
+   Keep the layout and colour, drop everything that moves on its own. */
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  /* View transitions do not opt out on their own. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*){ animation:none !important; }
+  [data-reveal]{ opacity:1 !important; transform:none !important; transition:none; }
+  .exp-row::before, .exp-row:last-child::after{ transform:scaleX(1) !important; transition:none; }
+  /* The lit state still works, it just arrives without the unfold. */
+  .exp-detail{ transition:none; }
+  /* Selection still works, it just snaps to the chosen card instead of
+     easing around to it. */
+  .carousel-track{ transition:none; }
+  /* The project field arrives assembled: no staggered lighting animation.
+     initProjectField also short-circuits, so this is belt and braces for the
+     case where the class lands before the check. */
+  .proj-field.js-field .proj-obj{ opacity:1; }
+  .proj-field.js-field .proj-obj .proj-obj-model{ translate:none; }
+  /* Both selectors, deliberately: `.marquee-v .marquee-track` outranks a bare
+     `.marquee-track`, so the vertical marquee in About went on scrolling under
+     a reduced-motion preference that had stopped the horizontal one. */
+  .marquee-track, .marquee-v .marquee-track{ animation:none; }
+  .star-near{ animation:none; }
+  .nebula{ transform:none; }
+  .eyebrow .dot{ animation:none; }
+  .hero-focus .dot{ animation:none; }
+  .hero-name .cursor{ animation:none; }
+  .hero-left::before{ animation:none; height:58%; }
+  .telemetry, .drag-hint{ animation:none; opacity:1; }
+  .orbit-labels{ opacity:1; }
+  /* No descent: the scene stops covering the hero, exactly as it did before
+     the two sections were joined. Absolute inside .descent, whose top edge is
+     the hero's, with the hero's compensating negative margin removed — so the
+     globe never ends up sitting behind the About copy. orbit-scene.js pins the
+     descent at 0 under the same preference. */
+  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - 64px); }
+  .hero{ margin-top:0; }
+  .hero-left{ opacity:1; transform:none; }
+  .hint-wrap{ opacity:1; }
+  .about{ padding-bottom:120px; }
+  .proj-card:hover .proj-media::after{ animation:none; }
+  .meteor{ display:none; }
+}

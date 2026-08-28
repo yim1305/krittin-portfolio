@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Project model renders — dev tool, not part of the live site</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    background: #14161a;
+    color: #eee;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 16px; font-weight: 500; margin: 0 0 4px; }
+  p.note { color: #9a958f; font-size: 13px; max-width: 760px; line-height: 1.5; margin: 0 0 24px; }
+  code { color: #ee6018; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    border: 1px solid #3d3a39;
+    border-radius: 10px;
+    padding: 14px;
+    background: #1a1c20;
+  }
+  .card h2 { font-size: 13px; margin: 0 0 8px; font-weight: 500; }
+  .card .file { color: #ee6018; font-size: 12px; margin-bottom: 8px; }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background:
+      linear-gradient(45deg,#2a2c30 25%,transparent 25%),
+      linear-gradient(-45deg,#2a2c30 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#2a2c30 75%),
+      linear-gradient(-45deg,transparent 75%,#2a2c30 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    border: 1px solid #3d3a39;
+    border-radius: 4px;
+  }
+  .controls { margin-top: 10px; }
+  button {
+    background: #eeeeee; color: #101010; border: none; border-radius: 3px;
+    padding: 7px 12px; font-family: inherit; font-size: 12px; cursor: pointer;
+  }
+  button:hover { background: #fafafa; }
+</style>
+</head>
+<body>
+<h1>Project model renders — dev tool, not part of the live site</h1>
+<p class="note">
+  Each card is a fixed-camera still, built from primitive geometry (no CAD, no AI image
+  generation) sized by eye against the reference photos — white hairline edges, near-invisible
+  fill, no lights, matching the site's flat/outline system. I could not preview these myself
+  (no browser driving in this session), so check each one before using it. Click Export, then
+  move the downloaded file into <code>assets/images/projects/</code> under the exact filename
+  shown — the checkerboard is just the on-screen transparency indicator, it is not in the file.
+</p>
+<div class="grid" id="grid"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const WHITE = 0xf5f5f5;
+const DEG = Math.PI / 180;
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const E3 = (x, y, z) => new THREE.Euler(x, y, z);
+
+// Adds a near-invisible fill + a white hairline edge outline for one piece of
+// geometry, wrapped in its own Object3D so position/rotation are set once.
+function part(parent, geometry, { position, rotation, opacity = 0.05 } = {}) {
+  const holder = new THREE.Object3D();
+  if (position) holder.position.copy(position);
+  if (rotation) holder.rotation.copy(rotation);
+
+  const fill = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({ color: WHITE, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false })
+  );
+  holder.add(fill);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry, 15),
+    new THREE.LineBasicMaterial({ color: WHITE })
+  );
+  holder.add(edges);
+
+  parent.add(holder);
+  return holder;
+}
+
+// A leg/arm hanging from `attachY`, splayed outward at `tiltDeg` from vertical
+// at azimuth `azimuthDeg`, with an optional foot pad. Reused for cubesat CMG
+// arms, sky-crane legs and lunar-hopper legs.
+function radialArm(parent, { azimuthDeg, tiltDeg, length, thickness, footRadius, attachY = 0 }) {
+  const az = new THREE.Object3D();
+  az.position.y = attachY;
+  az.rotation.y = -azimuthDeg * DEG;
+  parent.add(az);
+
+  const tilt = new THREE.Object3D();
+  tilt.rotation.z = tiltDeg * DEG;
+  az.add(tilt);
+
+  const armGeo = new THREE.CylinderGeometry(thickness, thickness, length, 8);
+  armGeo.translate(0, -length / 2, 0); // top end at the hinge origin, hangs downward
+  part(tilt, armGeo);
+
+  if (footRadius) {
+    part(tilt, new THREE.CylinderGeometry(footRadius, footRadius, thickness, 12), { position: V3(0, -length, 0) });
+  }
+}
+
+// A flat triangular fin — root edge at the body surface (local x=0), swept back to a
+// point `span` outward. Real fins are triangular, not the rectangular placeholder this
+// used to be; a flat ShapeGeometry is a direct swap for a zero-thickness box, same
+// position/rotation convention as everything else placed around the body (radius R,
+// azimuth th).
+function finGeometry(span, height) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, height / 2);
+  shape.lineTo(0, -height / 2);
+  shape.lineTo(span, -height / 2);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+function addFins(parent, { R, span, height, y, count = 3 }) {
+  const finGeo = finGeometry(span, height);
+  for (let i = 0; i < count; i++) {
+    const th = i * (360 / count) * DEG;
+    const az = new THREE.Object3D();
+    az.position.set(Math.cos(th) * R, y, Math.sin(th) * R);
+    az.rotation.y = -th;
+    parent.add(az);
+    part(az, finGeo);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Project TerraGator — 3-fin rocket with the deployed airbrake collar and
+//    a camera mount on the shoulder. Real airframe is 6in diameter x 160in
+//    long (26.7:1) — R and BODY_H/NOSE_H below hold that ratio; only the
+//    small shoulder/tail features stay sized off R since they scale with
+//    diameter, not length.
+//
+//    SUPERSEDED for the live site: terragator.png now comes from a
+//    Higgsfield-generated + background-removed still instead (see the
+//    "Model art" update in CLAUDE.md). Left here as a working revert path,
+//    same pattern as the inert carousel/grid below Projects.
+// ---------------------------------------------------------------------------
+function buildTerraGator() {
+  const g = new THREE.Group();
+  const R = 0.42, BODY_H = 17.75, NOSE_H = 4.2;
+  const TILT_DEG = 50; // in-flight lean, not standing on a pad — nudge to change it
+
+  part(g, new THREE.CylinderGeometry(R, R, BODY_H, 24, 1, true));
+  part(g, new THREE.ConeGeometry(R, NOSE_H, 24), { position: V3(0, BODY_H / 2 + NOSE_H / 2, 0) });
+  part(g, new THREE.CylinderGeometry(R * 0.82, R, 0.45, 24, 1, true), { position: V3(0, -BODY_H / 2 - 0.22, 0) });
+
+  // 3 triangular fins at the base, 120 deg apart
+  addFins(g, { R, span: 0.85, height: 1.3, y: -BODY_H / 2 - 0.15 });
+
+  // airbrake collar — 3 flaps mid-body, deployed outward. Sized up from a literal
+  // diameter-scale fraction so the mechanism actually reads against a 22-unit-long
+  // airframe instead of vanishing at identity-icon scale — this is the feature that
+  // makes TerraGator TerraGator, so it stays legible even if that costs realism.
+  const flapGeo = new THREE.BoxGeometry(0.05, 0.85, 0.9); // thin(radial) x height x width(tangential)
+  flapGeo.translate(0, 0.425, 0); // bottom edge at the hinge origin
+  const flapY = -BODY_H * 0.02;
+  for (let i = 0; i < 3; i++) {
+    const th = (i * 120 + 60) * DEG; // offset from the fins
+    const az = new THREE.Object3D();
+    az.position.set(Math.cos(th) * R, flapY, Math.sin(th) * R);
+    az.rotation.y = -th;
+    g.add(az);
+
+    const hinge = new THREE.Object3D();
+    hinge.rotation.z = 40 * DEG; // deploy angle — flip the sign if it swings the wrong way
+    az.add(hinge);
+
+    part(hinge, flapGeo);
+  }
+
+  // camera mount, small pod on the shoulder above the airbrake — also sized up for legibility
+  part(g, new THREE.CylinderGeometry(0.14, 0.14, 0.22, 12), {
+    position: V3(R + 0.09, BODY_H / 2 - 0.7, 0),
+    rotation: E3(0, 0, 90 * DEG),
+  });
+
+  g.rotation.z = TILT_DEG * DEG;
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// 2. Project Navigator — same 6in x 160in envelope as TerraGator, with the
+//    two top payload doors cracked open and the payload capsule peeking out.
+//
+//    SUPERSEDED for the live site: same as TerraGator above — navigator.png
+//    now comes from a Higgsfield-generated + background-removed still.
+// ---------------------------------------------------------------------------
+function buildNavigator() {
+  const g = new THREE.Group();
+  const R = 0.42, BODY_H = 17.75, NOSE_H = 4.2;
+  const TILT_DEG = -46; // opposite lean from TerraGator so the pair reads as two distinct passes, not a mirrored pair
+
+  part(g, new THREE.CylinderGeometry(R, R, BODY_H, 24, 1, true));
+  part(g, new THREE.ConeGeometry(R, NOSE_H, 24), { position: V3(0, BODY_H / 2 + NOSE_H / 2, 0) });
+  part(g, new THREE.CylinderGeometry(R * 0.82, R, 0.45, 24, 1, true), { position: V3(0, -BODY_H / 2 - 0.22, 0) });
+
+  addFins(g, { R, span: 0.85, height: 1.3, y: -BODY_H / 2 - 0.15 });
+
+  // 2 payload bay doors at the very top, hinged open along the diameter
+  const doorShape = new THREE.Shape();
+  doorShape.moveTo(R, 0);
+  doorShape.absarc(0, 0, R, 0, Math.PI, false);
+  doorShape.lineTo(R, 0);
+  const doorGeoA = new THREE.ShapeGeometry(doorShape, 24);
+  doorGeoA.rotateX(Math.PI / 2); // lay the flat lid horizontal; hinge edge stays on the local X axis
+  const doorGeoB = doorGeoA.clone();
+
+  const doorTopY = BODY_H / 2 - 0.5; // a hatch in the upper body, below the nose cone, not the tip itself
+  const OPEN_DEG = -62; // flip the sign if a door opens the wrong way — swung further open than before so the gap actually reads at identity-icon scale
+
+  const hingeA = new THREE.Object3D();
+  hingeA.position.set(0, doorTopY, 0);
+  hingeA.rotation.x = OPEN_DEG * DEG;
+  g.add(hingeA);
+  part(hingeA, doorGeoA);
+
+  const hingeB = new THREE.Object3D(); // flips the same half-disk to the opposite side of the hinge line
+  hingeB.position.set(0, doorTopY, 0);
+  hingeB.rotation.y = 180 * DEG;
+  g.add(hingeB);
+  const hingeB2 = new THREE.Object3D();
+  hingeB2.rotation.x = OPEN_DEG * DEG;
+  hingeB.add(hingeB2);
+  part(hingeB2, doorGeoB);
+
+  // payload capsule peeking out of the open doors, tripod legs like the shroud — sized
+  // up from the original (same reason as TerraGator's flaps: too small to read once the
+  // whole airframe stretched to its real 22-unit length)
+  const capsule = new THREE.Group();
+  part(capsule, new THREE.CylinderGeometry(0.28, 0.28, 0.55, 16));
+  for (let i = 0; i < 3; i++) {
+    radialArm(capsule, { azimuthDeg: i * 120, tiltDeg: 55, length: 0.36, thickness: 0.03, attachY: -0.275 });
+  }
+  capsule.position.set(0, doorTopY + 0.5, 0);
+  g.add(capsule);
+
+  g.rotation.z = TILT_DEG * DEG;
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Hybrid CMG Momentum Desaturation — 12U bus with 4 pyramid CMGs inside.
+//
+//    This design was ported into js/moon-scene.js's buildCmgCubesat() so the
+//    object could orbit the Moon live instead of sitting as a flat still —
+//    keep the two in sync if the proportions or CMG layout change. This still
+//    export (hybrid-cmg.png) is not gone, though: it is now the mobile /
+//    reduced-motion fallback shown only in the stacked layout, where the Moon
+//    canvas never mounts at all. See CLAUDE.md for the full story.
+// ---------------------------------------------------------------------------
+function buildHybridCMG() {
+  const g = new THREE.Group();
+  const W = 3.6, H = 2.4, D = 2.3; // proportions from the 360x230x240mm reference
+
+  part(g, new THREE.BoxGeometry(W, H, D), { opacity: 0.035 });
+
+  const cmgGeo = new THREE.ConeGeometry(0.35, 0.7, 4); // 4-sided = reads as a pyramid
+  for (let i = 0; i < 4; i++) {
+    const az = new THREE.Object3D();
+    az.rotation.y = -(i * 90 + 45) * DEG;
+    g.add(az);
+    const tilt = new THREE.Object3D();
+    tilt.rotation.z = 55 * DEG;
+    az.add(tilt);
+    part(tilt, cmgGeo, { position: V3(0, 0.35, 0) });
+  }
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Non Holonomic CBF — a TurtleBot: drum base, 2 wheels, lidar mast.
+// ---------------------------------------------------------------------------
+function buildTurtlebot() {
+  const g = new THREE.Group();
+  part(g, new THREE.CylinderGeometry(0.34, 0.34, 0.22, 24));
+  part(g, new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16), { position: V3(0.34, -0.05, 0), rotation: E3(0, 0, 90 * DEG) });
+  part(g, new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16), { position: V3(-0.34, -0.05, 0), rotation: E3(0, 0, 90 * DEG) });
+  part(g, new THREE.BoxGeometry(0.05, 0.42, 0.05), { position: V3(0, 0.32, 0) }); // mast
+  part(g, new THREE.CylinderGeometry(0.1, 0.1, 0.05, 20), { position: V3(0, 0.56, 0) }); // lidar puck
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// 5. Sky Crane — descent stage, splayed legs, 4 thrust nozzles, bridle + payload.
+// ---------------------------------------------------------------------------
+function buildSkyCrane() {
+  const g = new THREE.Group();
+  const DECK_W = 1.3, DECK_H = 0.35, DECK_D = 1.3;
+
+  part(g, new THREE.BoxGeometry(DECK_W, DECK_H, DECK_D), { opacity: 0.04 });
+
+  for (let i = 0; i < 4; i++) {
+    radialArm(g, { azimuthDeg: i * 90 + 45, tiltDeg: 28, length: 1.0, thickness: 0.035, footRadius: 0.09, attachY: -DECK_H / 2 });
+  }
+
+  const nozzleGeo = new THREE.ConeGeometry(0.14, 0.28, 16);
+  for (let i = 0; i < 4; i++) {
+    const az = new THREE.Object3D();
+    az.rotation.y = -(i * 90 + 45) * DEG;
+    g.add(az);
+    part(az, nozzleGeo, { position: V3(0.5, -DECK_H / 2 - 0.14, 0), rotation: E3(180 * DEG, 0, 0) });
+  }
+
+  part(g, new THREE.CylinderGeometry(0.015, 0.015, 0.9, 8), { position: V3(0, -DECK_H / 2 - 1.0, 0) }); // bridle cable
+  part(g, new THREE.BoxGeometry(0.5, 0.35, 0.5), { position: V3(0, -DECK_H / 2 - 1.5, 0) }); // hanging payload
+
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// 6. Lunar Hopper — tank body, 3 splayed legs, hop thruster, side panels.
+// ---------------------------------------------------------------------------
+function buildLunarHopper() {
+  const g = new THREE.Group();
+  part(g, new THREE.CylinderGeometry(0.42, 0.5, 0.6, 20), { opacity: 0.04 });
+
+  for (let i = 0; i < 3; i++) {
+    radialArm(g, { azimuthDeg: i * 120, tiltDeg: 32, length: 0.55, thickness: 0.03, footRadius: 0.07, attachY: -0.3 });
+  }
+
+  part(g, new THREE.ConeGeometry(0.16, 0.3, 16), { position: V3(0, -0.45, 0), rotation: E3(180 * DEG, 0, 0) });
+
+  const panelGeo = new THREE.BoxGeometry(0.03, 0.5, 0.85);
+  part(g, panelGeo, { position: V3(0.45, 0.05, 0) });
+  part(g, panelGeo, { position: V3(-0.45, 0.05, 0) });
+
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// viewer harness — renders once at final export resolution, no animation loop
+// ---------------------------------------------------------------------------
+function makeViewer(container, { w, h, buildFn, camPos, camTarget = new THREE.Vector3(0, 0, 0), filename }) {
+  const scene = new THREE.Scene();
+  scene.add(buildFn());
+
+  const camera = new THREE.PerspectiveCamera(32, w / h, 0.1, 100);
+  camera.position.copy(camPos);
+  camera.lookAt(camTarget);
+
+  // Rendered at 2x and downsampled for export — thin hairline edges viewed at a
+  // shallow angle (a rocket's nose cone, seen nearly edge-on) alias badly at 1x;
+  // WebGL's own MSAA isn't enough to keep them reading as solid white instead of a
+  // grey smear. The downsample is what actually fixes it, not the MSAA flag below.
+  const SS = 2;
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+  renderer.setClearColor(0x000000, 0);
+  renderer.setSize(w * SS, h * SS, false);
+  renderer.domElement.style.width = "100%";
+  renderer.domElement.style.height = "auto";
+  container.appendChild(renderer.domElement);
+  renderer.render(scene, camera);
+
+  return {
+    exportPNG() {
+      const out = document.createElement("canvas");
+      out.width = w;
+      out.height = h;
+      out.getContext("2d").drawImage(renderer.domElement, 0, 0, w, h);
+      const url = out.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    },
+  };
+}
+
+const MODELS = [
+  // Both rockets now lean into flight instead of standing upright, so their footprint
+  // is wide-ish rather than tall — cam distance/target recomputed off the tilted
+  // nose-to-tail bounding box (see the ratio note above buildTerraGator). Not
+  // visually checked this session — open this file yourself and re-export if the
+  // framing crops a tip or leaves too much dead margin.
+  { file: "terragator.png", title: "Project TerraGator", build: buildTerraGator, w: 580, h: 490, cam: V3(31.02, 15.78, 44.53), target: V3(-1.44, 1.21, 0) },
+  { file: "navigator.png", title: "Project Navigator", build: buildNavigator, w: 520, h: 505, cam: V3(22.24, 11.32, 31.94), target: V3(1.35, 1.30, 0) },
+  { file: "hybrid-cmg.png", title: "Hybrid CMG Momentum Desaturation", build: buildHybridCMG, w: 640, h: 640, cam: V3(6.6, 3.36, 9.48), target: V3(0, 0, 0) },
+  { file: "nonholonomic-cbf.png", title: "Non Holonomic CBF — TurtleBot", build: buildTurtlebot, w: 600, h: 320, cam: V3(1.32, 0.67, 1.9), target: V3(0, 0.24, 0) },
+  { file: "sky-crane.png", title: "Sky Crane", build: buildSkyCrane, w: 782, h: 680, cam: V3(3.3, 1.68, 4.74), target: V3(0, -0.84, 0) },
+  { file: "lunar-hopper.png", title: "Lunar Hopper", build: buildLunarHopper, w: 735, h: 700, cam: V3(1.82, 0.92, 2.61), target: V3(0, -0.23, 0) },
+];
+
+const grid = document.getElementById("grid");
+for (const m of MODELS) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<h2>${m.title}</h2><div class="file">${m.file}</div>`;
+  const canvasHolder = document.createElement("div");
+  card.appendChild(canvasHolder);
+  const controls = document.createElement("div");
+  controls.className = "controls";
+  const btn = document.createElement("button");
+  btn.textContent = "Export PNG";
+  controls.appendChild(btn);
+  card.appendChild(controls);
+  grid.appendChild(card);
+
+  const viewer = makeViewer(canvasHolder, { w: m.w, h: m.h, buildFn: m.build, camPos: m.cam, camTarget: m.target, filename: m.file });
+  btn.addEventListener("click", () => viewer.exportPNG());
+}
+</script>
+</body>
+</html>
