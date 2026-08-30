@@ -30,7 +30,6 @@
       <a href="../index.html#about">about</a>
       <a href="../index.html#experience">experience</a>
       <a href="../index.html#projects">projects</a>
-      <a href="../index.html#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -41,48 +40,103 @@
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>project — 01</div>
     <h1 class="detail-title">Project Navigator</h1>
-    <div class="detail-sub">[Placeholder one-line summary of what this project is and the problem it solved.]</div>
+    <div class="detail-sub">Drop It Like It’s Hot (Payload) for Project Navigator</div>
   </div>
 
+  <!-- Krittin: "the retention system make it it's own image" — the payload
+       and software-design diagrams that used to share this gallery have
+       both moved out (see below), so this is back to a single lead shot,
+       same as `.detail-media-inner` on every other project page. Real
+       photo, default crop-to-fill. -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner">
+      <img src="../assets/images/projects/navigator-retention-system.png" alt="Payload nested in the rocket's retention system tube">
+    </div>
+  </div>
+
+  <!-- Krittin: "add the navigator model" (navigator.png already had no
+       background, same Higgsfield batch as terragator.png) — "make rocket
+       2x bigger" (.is-xl) — "remove logo from the payload photo and remove
+       background and put that next to rocket" (background/logo removed
+       locally with System.Drawing, Higgsfield's remove_background being out
+       of free credits; see assets/images/projects/README.md). Same
+       .cutout-row treatment TerraGator's rocket and ACS stills get. -->
+  <div class="cutout-row">
+    <figure class="cutout is-xl">
+      <img src="../assets/images/projects/navigator.png" alt="Project Navigator, finished rocket">
+      <figcaption>finished rocket</figcaption>
+    </figure>
+    <figure class="cutout">
+      <img src="../assets/images/projects/navigator-payload.png" alt="Payload deployment illustration, background removed — parachute descent and landed configuration">
+      <figcaption>payload</figcaption>
+    </figure>
   </div>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">timeframe</div>
-        <div class="fact-value">[mon yyyy] – [mon yyyy]</div>
+        <div class="fact-value">Fall 2024 – Spring 2025</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">role</div>
-        <div class="fact-value">[Your role on the project]</div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">team</div>
-        <div class="fact-value">[Solo / team of N, org or club name]</div>
+        <div class="fact-value">Payload Software Associate Lead</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
+          <div class="tag">C++</div>
+          <div class="tag">I2C</div>
+          <div class="tag">SPI</div>
         </div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/rocket-software.pdf">↓ read the paper</a>
+        <div class="fact-label">results</div>
+        <div class="fact-value">Won the Apogee Award and placed 5th overall at the 2025 NASA USLI competition.</div>
       </div>
     </div>
 
     <div class="desc" data-reveal>
-      <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
-      <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
+      <h3>about</h3>
+      <ul>
+        <li>Payload collects data during rocket descent — max velocity, landing velocity, landing acceleration, max apogee, landing location, landing site temperature, and landing orientation</li>
+        <li>Kalman Filter for rocket state estimation</li>
+        <li>Multithreading for faster computing time</li>
+        <li>Retention system opens up the rocket airframe and drops the payload on radio command</li>
+        <li>Once the payload lands, the antenna pops up and starts transmitting the collected data to NASA over the 2M radio band</li>
+      </ul>
+
+      <!-- Krittin: "just dont match the style just attach the software
+           architecture image as is just have its own box" — back to the
+           original image, unmodified, in the standard .detail-figure-media
+           box (no SVG redesign). NEEDS THE FILE: the original
+           navigator-software-design.png was deleted while building the SVG
+           version and is not recoverable (no git install on this machine to
+           restore it, and it wasn't in the Recycle Bin) — Krittin needs to
+           re-supply it as navigator-software-design.png here. -->
+      <figure class="detail-figure">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/navigator-software-design.png" alt="Payload software architecture diagram"></div>
+        <figcaption>software architecture</figcaption>
+      </figure>
+
+      <!-- Krittin: "the preflight post flight and flight by itself without
+           box and border" — plain images now, no .detail-figure-media
+           carbon/ash box. Real console/log output from the actual flight
+           (Swamp Launch logging, thread activity, launch/landing detection,
+           final telemetry), not simulation data. -->
       <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <figure class="detail-figure detail-figure--plain detail-figure--inset align-left">
+        <img src="../assets/images/projects/navigator-preflight.png" alt="Pre-flight phase log — sensor initialization and launch detection">
+        <figcaption>pre-flight — sensor init and launch detection</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--plain">
+        <img src="../assets/images/projects/navigator-flight.png" alt="Flight phase log — Kalman filter thread activity and landing detection">
+        <figcaption>flight — Kalman filter threads, landing detection</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--plain detail-figure--inset align-right">
+        <img src="../assets/images/projects/navigator-postflight.png" alt="Post-flight phase log — final telemetry: temperature, apogee, battery, orientation">
+        <figcaption>post-flight — final telemetry readout</figcaption>
+      </figure>
     </div>
   </div>
 

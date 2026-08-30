@@ -44,7 +44,6 @@ const SATELLITES = [
   { id: "about",      label: "about",             href: "#about",      radius: 2.35, tilt: 8,   incl: 12,  speed: 0.10, phase: 0,   color: ORANGE },
   { id: "experience", label: "experience",        href: "#experience", radius: 2.75, tilt: -22, incl: -20, speed: 0.07, phase: 95,  color: GREEN  },
   { id: "projects",   label: "projects & papers", href: "#projects",   radius: 3.15, tilt: 16,  incl: 30,  speed: 0.05, phase: 200, color: ORANGE },
-  { id: "awards",     label: "awards",            href: "#awards",     radius: 3.5,  tilt: -10, incl: -35, speed: 0.04, phase: 300, color: GREEN  },
 ];
 
 // How far the constellation actually reaches, so the camera can be placed as

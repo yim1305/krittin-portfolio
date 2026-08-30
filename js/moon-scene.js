@@ -1,4 +1,25 @@
 // ==========================================================================
+// SUPERSEDED — nothing imports this file.
+//
+// The Projects section is one fixed Earth/Moon system now (js/system-scene.js,
+// 2026-08-28): a static composition with all six projects placed in it, no
+// rotation, no orbiting, and no render loop. This file is kept on disk purely
+// as the revert path for that redesign — there is no git on this machine and
+// Krittin publishes the site himself, so an unimported file is how a revert
+// path gets provided here, the same way the carousel and the flat grid are
+// kept as commented-out markup in index.html.
+//
+// To revert: put the .proj-moon / .proj-obj markup back in index.html, import
+// initMoonScene there again, and restore the "projects field" rules in
+// style.css. Note that the scatter field's markup was DELETED rather than
+// commented out, so that half is a real rewrite, not a one-line switch.
+//
+// system-scene.js ports buildCmgCubesat(), buildSkyCraneLander() and the hop
+// trajectory from here unchanged in design — keep the two in sync if either
+// is ever revisited.
+// ==========================================================================
+
+// ==========================================================================
 // Projects Moon.
 //
 // The same instrument treatment as the hero globe in orbit-scene.js, applied

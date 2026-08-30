@@ -132,6 +132,99 @@ function initTypingName() {
 }
 
 // --------------------------------------------------------------------------
+// Projects index typing — the same terminal-boot-log gesture as the hero
+// name, but sequential across all six .proj-index rows and triggered on
+// scroll-into-view rather than on page load, since the section starts off
+// screen. Krittin: "add typing animation liek space scifi theme." Reuses
+// .cursor (see style.css) so it's the same orange block-cursor language as
+// the hero, not a second one.
+// --------------------------------------------------------------------------
+function initIndexTyping() {
+  const links = Array.from(document.querySelectorAll(".proj-index a"));
+  if (!links.length) return;
+
+  // Each row is <a><span.proj-title>…</span><span.proj-year>…</span>[<span.
+  // proj-status>…</span>][<span.proj-program>…</span>]</a> — status only on
+  // the "in progress" rows, program only on the two research rows (USP,
+  // thesis). Only the title is typed; year/status/program are separate
+  // spans that fade in once the row finishes, so they read as metadata
+  // settling in rather than part of the name being typed out. Bail on any
+  // row missing the title span rather than typing over the markup and
+  // destroying the year.
+  const rows = links.map((a) => ({
+    title: a.querySelector(".proj-title"),
+    year: a.querySelector(".proj-year"),
+    status: a.querySelector(".proj-status"),
+    program: a.querySelector(".proj-program"),
+  }));
+  if (rows.some((r) => !r.title)) return;
+
+  const titles = rows.map((r) => r.title.textContent);
+
+  const cursor = document.createElement("span");
+  cursor.className = "cursor";
+
+  function finish(row) {
+    if (row.year) row.year.classList.remove("is-pending");
+    if (row.status) row.status.classList.remove("is-pending");
+    if (row.program) row.program.classList.remove("is-pending");
+  }
+
+  if (REDUCED) {
+    rows.forEach(finish);
+    rows[rows.length - 1].title.appendChild(cursor);
+    return;
+  }
+
+  rows.forEach((r) => {
+    r.title.textContent = "";
+    if (r.year) r.year.classList.add("is-pending");
+    if (r.status) r.status.classList.add("is-pending");
+    if (r.program) r.program.classList.add("is-pending");
+  });
+
+  const SPEED = 32; // ms per character — faster than the hero name; six lines add up
+  let started = false;
+
+  function type() {
+    if (started) return;
+    started = true;
+    let line = 0;
+    let i = 0;
+    function next() {
+      if (line >= rows.length) return;
+      rows[line].title.textContent = titles[line].slice(0, i);
+      rows[line].title.appendChild(cursor);
+      if (i < titles[line].length) {
+        i++;
+        setTimeout(next, SPEED);
+      } else {
+        finish(rows[line]);
+        if (line < rows.length - 1) {
+          line++;
+          i = 0;
+          setTimeout(next, SPEED * 4); // beat between lines
+        }
+      }
+    }
+    next();
+  }
+
+  if (!("IntersectionObserver" in window)) { type(); return; }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        type();
+        observer.disconnect();
+      });
+    },
+    { rootMargin: "0px 0px -12% 0px", threshold: 0.08 }
+  );
+  observer.observe(links[0].parentElement);
+}
+
+// --------------------------------------------------------------------------
 // Scroll reveal. Siblings inside the same parent stagger against each other
 // so grids and lists arrive in sequence rather than all at once.
 // --------------------------------------------------------------------------
@@ -257,6 +350,12 @@ function initNav() {
 // --------------------------------------------------------------------------
 const STACK_BREAKPOINT = 900;
 
+// How much of the nebula's colour Projects gets back. Deliberately under the
+// hero's 1: the hero is still the most coloured piece of sky on the page, and
+// the Earth/Moon scene has enough going on in front of it that a full-strength
+// backdrop would crowd it.
+const PROJECT_SKY = 0.8;
+
 function initDescent() {
   const root = document.documentElement;
   const hero = document.getElementById("home");
@@ -277,9 +376,15 @@ function initDescent() {
   // rAF alongside code that writes styles — reading them per frame is the
   // classic read/write thrash. It also stops the numbers shifting underfoot
   // when an Experience row unfolds on hover and nudges the wrapper's height.
+  // The Projects section, which gets the nebula BACK — see the sky note in
+  // update(). Absent on the project detail pages, which return above, and
+  // guarded anyway so the whole mechanism degrades to "hero only".
+  const projects = document.getElementById("projects");
+
   let heroH = 0;
   let riseMax = 0;
   let active = false;
+  let projTop = Infinity;
 
   function measure() {
     // Below the breakpoint, and under reduced motion, the scene is boxed back
@@ -292,6 +397,8 @@ function initDescent() {
     // the wrapper starts exactly NAV_H down the page.
     const wrapBottom = wrap.getBoundingClientRect().bottom + window.scrollY;
     riseMax = Math.max(0, wrapBottom - window.innerHeight - heroH);
+
+    projTop = projects ? projects.getBoundingClientRect().top + window.scrollY : Infinity;
   }
 
   function update() {
@@ -318,17 +425,31 @@ function initDescent() {
     // rather than guessed at from section heights.
     window.__risePx = active ? Math.min(Math.max(y - heroH, 0), riseMax) : 0;
 
-    // The nebula's colour is the home page's alone. It drains over the descent
-    // so it is gone by the time About is in place, leaving every section from
-    // there on plain black with white star dots. Computed even under reduced
-    // motion and on the stacked layout: it is a function of scroll position
-    // rather than an animation, and skipping it would leave the colour sitting
-    // behind every section.
-    // Derived from scroll directly rather than from p, so it still fades
-    // smoothly where the descent itself is switched off — p is pinned at 0
-    // there, and reusing it would snap the colour away on the first pixel.
-    const sky = heroH > 0 ? 1 - Math.min(Math.max(y / heroH, 0), 1) : 1;
-    root.style.setProperty("--sky-color", sky.toFixed(4));
+    // ---- the nebula's colour ------------------------------------------
+    //
+    // It drains over the descent, so About and Experience are plain black with
+    // white star dots, and then it comes BACK for Projects — Krittin: "add
+    // nebula to this page as well". Projects and Awards share one canvas and
+    // one piece of sky (the globe spills from one into the other), so the
+    // colour rises once as Projects arrives and simply stays up to the foot of
+    // the page rather than fading out again between them.
+    //
+    // Computed even under reduced motion and on the stacked layout: this is a
+    // function of scroll position rather than an animation, and skipping it
+    // would leave the colour sitting behind every section.
+    //
+    // Both terms are derived from scroll DIRECTLY rather than from p, so they
+    // still fade smoothly where the descent itself is switched off — p is
+    // pinned at 0 there, and reusing it would snap the colour away on the
+    // first pixel.
+    const heroSky = heroH > 0 ? 1 - Math.min(Math.max(y / heroH, 0), 1) : 1;
+    // Starts the moment Projects' top edge enters the viewport and takes about
+    // three quarters of a screen to arrive, so the colour is already up by the
+    // time the section is actually being looked at.
+    const vh = window.innerHeight;
+    const projSky =
+      projTop === Infinity ? 0 : PROJECT_SKY * Math.min(Math.max((y + vh - projTop) / (vh * 0.75), 0), 1);
+    root.style.setProperty("--sky-color", Math.max(heroSky, projSky).toFixed(4));
   }
 
   const remeasure = () => { measure(); update(); };
@@ -426,12 +547,45 @@ function initStarfield() {
       l.el.style.backgroundPosition =
         live.base[i].x.toFixed(1) + "px " + live.base[i].y.toFixed(1) + "px";
     });
-    if (nebula) {
+    // REDUCED: leave the inline transform unset so .nebula's own
+    // `transform:none` (under prefers-reduced-motion in style.css) applies —
+    // paint() still runs once on load to restore the starfield's position,
+    // and without this guard that single call would freeze the nebula at
+    // one arbitrary point in the drift cycle instead of dead centre.
+    if (nebula && !REDUCED) {
+      // SPEED IS THE WHOLE POINT HERE, and it took two goes to get right.
+      // Krittin asked for the backdrop to stop feeling static, this was sped
+      // up once, and he reported it still looked frozen — correctly. The
+      // arithmetic says why: a sine of amplitude A and period T peaks at
+      // 2*pi*A/T px/s, so the previous 30px / 163s worked out at 1.1 px/s.
+      // That is below the threshold where a soft-edged cloud reads as moving
+      // at all; you would have to stare at a fixed landmark for ten seconds to
+      // catch it. The numbers below land around 4 px/s on the horizontal,
+      // which is unmistakable over a glance without being distracting.
+      //
+      // Three motions, on deliberately unrelated periods so the whole thing
+      // never visibly repeats: a fast-ish horizontal drift, a slower vertical
+      // one, and a scale BREATHE that swells and recedes. The breathe matters
+      // as much as the drift — sliding alone reads as a texture being panned,
+      // whereas swelling reads as cloud, which is what "the dust keeps moving"
+      // is asking for.
+      //
+      // Sped up AGAIN on request ("nebula move faster"), roughly doubling the
+      // ~4 px/s the previous pass landed on. Same three motions, shorter
+      // periods and wider amplitudes.
+      //
+      // The amplitudes are bounded by the CSS overscale, which went up to 1.34
+      // with them (see .nebula in style.css). Worst case here is 96px across
+      // and 48 + 30 of scroll parallax = 78px down, against a minimum scale of
+      // 1.285 — a 14.25% margin each side, which covers those excursions down
+      // to roughly a 680x550 viewport. Raise the CSS scale before raising
+      // these any further.
       const t = live.clock;
-      const dx = Math.sin(t / 38) * 26; // ~4 min period
-      const dy = Math.cos(t / 52) * 16; // ~5.5 min period
+      const dx = Math.sin(t / 11) * 96; // ~69s period, peaks ~8.7 px/s
+      const dy = Math.cos(t / 15) * 48; // ~94s period, peaks ~3.2 px/s
+      const scale = 1.34 + Math.sin(t / 6.5) * 0.055; // ~41s breathe, 1.285-1.395
       nebula.style.transform =
-        "translate3d(" + dx.toFixed(1) + "px," + (live.nebY + dy).toFixed(1) + "px,0) scale(1.12)";
+        "translate3d(" + dx.toFixed(1) + "px," + (live.nebY + dy).toFixed(1) + "px,0) scale(" + scale.toFixed(3) + ")";
     }
   }
 
@@ -614,74 +768,6 @@ function initProjectCarousel() {
 }
 
 // --------------------------------------------------------------------------
-// Projects field.
-//
-// The section is one fixed-scatter diorama rather than cards — see "projects
-// field" in style.css for how its two coordinate systems work. This owns two
-// jobs:
-//
-//   1. Reveal each supplied still and drop its placeholder. The <img>s point
-//      at files that do not exist yet, so nothing is shown until one actually
-//      decodes; dropping the PNGs into assets/images/projects/ is therefore
-//      the entire handoff, with no markup change.
-//   2. Light the objects on first scroll-in, staggered 90ms apart in document
-//      order — the same stagger the scroll reveals use elsewhere.
-//
-// There used to be a third job: a rocket flying in once and landing on the
-// TerraGator object, with that object lighting first as the "becomes the
-// model" beat. Krittin had it removed; the objects now just light in document
-// order with no flight to hand off from.
-//
-// Every entrance style is scoped to .js-field, which is only added here, so
-// any failure in this function leaves the field plainly visible rather than
-// blank. The stagger is skipped outright on the stacked layout and under
-// reduced motion, where the field is a plain stacked list.
-// --------------------------------------------------------------------------
-function initProjectField() {
-  const field = document.getElementById("proj-field");
-  if (!field) return;
-
-  const objs = Array.from(field.querySelectorAll(".proj-obj"));
-  if (!objs.length) return;
-
-  // 1. Art, if and when it exists. Checking naturalWidth rather than trusting
-  // `complete` matters: a 404 also resolves as complete, and marking that as
-  // art would swap a readable placeholder for a broken-image glyph.
-  objs.forEach((obj) => {
-    const img = obj.querySelector(".proj-art");
-    if (!img) return;
-    const show = () => { if (img.naturalWidth > 0) obj.classList.add("has-art"); };
-    if (img.complete) show();
-    else img.addEventListener("load", show, { once: true });
-  });
-
-  // Below 900px the field is a stacked list, and under reduced motion nothing
-  // is allowed to animate in. Leaving .js-field off is what keeps everything
-  // visible.
-  if (REDUCED || window.innerWidth <= 900) return;
-  field.classList.add("js-field");
-
-  let lit = false;
-  function light() {
-    if (lit) return;
-    lit = true;
-    objs.forEach((obj, i) => {
-      window.setTimeout(() => obj.classList.add("lit"), i * 90);
-    });
-  }
-
-  if (!("IntersectionObserver" in window)) { light(); return; }
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      light();
-    });
-  }, { threshold: 0.25 });
-  io.observe(field);
-}
-
-// --------------------------------------------------------------------------
 // Page transitions.
 //
 // The cross-fade itself is pure CSS (`@view-transition` in style.css). All
@@ -698,15 +784,22 @@ function initProjectField() {
 function initPageTransitions() {
   const supported = "startViewTransition" in document && "onpagereveal" in window;
 
-  // Three generations of Projects markup can carry a project href: .proj-obj
-  // in the live scatter field, .carousel-link in the carousel experiment, and
-  // .proj-card in the flat grid before it. The last two are commented out in
-  // index.html as revert paths, so querying all three keeps the morph working
-  // whichever one is live without this needing to know which.
+  // Four generations of Projects markup can carry a project href: .proj-label
+  // (the 3D scene's HTML labels), .proj-obj (the scatter field before it),
+  // .carousel-link (the carousel experiment) and .proj-card (the flat grid
+  // before that). Querying all four keeps the morph working whichever one is
+  // live, without this needing to know which.
+  //
+  // Right now NONE of them are: the scene's labels were removed and its
+  // projects are navigated by clicking the 3D models themselves, which cannot
+  // be snapshotted for a shared-element transition. cardFor() therefore
+  // returns null and those navigations simply cross-fade — which is correct,
+  // not a bug. The selectors stay because the labels are expected back.
   function cardFor(url) {
     const m = String(url || "").match(/projects\/([a-z0-9-]+)\.html/i);
     if (!m) return null;
     return document.querySelector(
+      '.proj-label[href$="' + m[1] + '.html"], ' +
       '.proj-obj[href$="' + m[1] + '.html"], ' +
       '.proj-card[href$="' + m[1] + '.html"], ' +
       '.carousel-link[href$="' + m[1] + '.html"]'
@@ -716,7 +809,13 @@ function initPageTransitions() {
   function tag(card, on) {
     if (!card) return;
     const media = card.querySelector(".proj-obj-model, .proj-media, .carousel-model");
-    const title = card.querySelector(".proj-obj-label, .proj-title, .carousel-title");
+    // A scene label has no inner title element — the label IS the title, so it
+    // tags itself. It has no media half at all: the "media" on the index side
+    // is a 3D object inside a shared canvas, which cannot be snapshotted on
+    // its own, so these navigations morph the title and cross-fade the rest.
+    const title =
+      card.querySelector(".proj-obj-label, .proj-title, .carousel-title") ||
+      (card.classList.contains("proj-label") ? card : null);
     if (media) media.style.viewTransitionName = on ? "proj-media" : "";
     if (title) title.style.viewTransitionName = on ? "proj-title" : "";
   }
@@ -823,15 +922,19 @@ initPageTransitions();
 
 function boot() {
   initTypingName();
+  initIndexTyping();
   initReveal();
   initNav();
   initDescent();
   initScrollProgress();
   initStarfield();
   initClock();
-  initProjectField();
+  // The Projects section is one 3D scene now (js/system-scene.js, mounted
+  // from index.html's module script) with no DOM objects to stagger in, so
+  // initProjectField is gone entirely rather than left as a no-op.
+  //
   // Still called, and still a no-op unless the carousel markup is uncommented
-  // in index.html — it is one of the two revert paths for this section.
+  // in index.html — it is one of the revert paths for this section.
   initProjectCarousel();
 }
 

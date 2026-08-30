@@ -1,67 +1,62 @@
-# Project stills
+# Project stills — NOT for the home Projects scene
 
-One still image per project, shown in the Projects field on the home page.
-The page already points at every filename below — **drop the files in and they
-appear.** No markup change, no rebuild. Until a file exists, that object shows
-a labelled placeholder box instead, so a missing image is never a broken page.
+**The home Projects section (js/system-scene.js) still doesn't use any of
+these.** It's one fixed 3D Earth/Moon system with all six projects as real 3D
+objects — no `<img>` elements at any viewport, so dropping files in here does
+nothing for that section specifically.
 
-Three of these six (`hybrid-cmg`, `sky-crane`, `lunar-hopper`) are now
-**mobile/reduced-motion fallbacks only** — their live versions on desktop are
-real 3D objects on the Moon (`js/moon-scene.js`), not images. Keep supplying
-these three anyway; they are still what shows up in the one stacked layout
-where the Moon's WebGL canvas never mounts.
+That said, files here ARE now used by individual project DETAIL pages, a
+different context this README used to not distinguish:
+`projects/rocket-airbrake.html` (TerraGator) loads `terragator.png`,
+`acs.webp`, `acs-2.webp`, `acs-3.png` and `acs-4.png` directly — the two
+`.webp` ones are background-removed via Higgsfield's `remove_background`
+(the site's 2 free-plan credits for this session, now at 0); `terragator.png`
+already had no background from an earlier batch. `projects/rocket-software.html`
+(Navigator) loads `navigator.png` (also already background-free),
+`navigator-payload.png` (background AND a team-logo badge removed locally
+with PowerShell + .NET `System.Drawing` — chroma-key on the near-white pixels
+plus a hand-erased rectangle over the logo — once Higgsfield's credits ran
+out), `navigator-retention-system.png`, `navigator-preflight.png`,
+`navigator-flight.png` and `navigator-postflight.png` — renamed from their
+original spaced/parenthesised filenames (and one typo, "Flioght") for a
+clean URL. `projects/ros-research.html` (CBF) loads `cbf-1.png` (Gazebo
+workspace, safe-set boundary + robot) and `cbf-2.png` (top-down trajectory
+plot) — renamed from `CBF1.png`/`CBF 2.png` for the same reason.
+`projects/controls-final-project.html` (Sky Crane) loads
+`crane-linear-simulink.png` and `crane-nonlinear-simulink.png` (the two
+Simulink models from the paper, `assets/papers/controls-final-project.pdf`)
+— renamed from `crane lin simulink.png`/`crane nonlin simulink.png` — plus
+`crane-linsim-result.png`/`crane-nonlinsim-result.png` (real exported
+Figures 9–10/12–13, renamed from `linsim result.png`/`nonlinsim result.png`)
+and `crane-poleplacement-response.svg`, the one plot still without a real
+export — simulated fresh from the PDF's own poles/K-matrix, illustrative
+only (see the note in the HTML for how, and why it isn't a replica of the
+paper's actual noisy disturbance run).
+`projects/thesis.html` (CMG) loads `cmg-pyramid-configuration.png` (the
+four-CMG pyramid mounting diagram) into its one `.desc` figure — renamed
+from `cmg pyramid configuration.png`.
 
-| File | Project | Detail page |
-|---|---|---|
-| `terragator.png` | Project TerraGator | `projects/rocket-airbrake.html` |
-| `navigator.png` | Project Navigator | `projects/rocket-software.html` |
-| `hybrid-cmg.png` | Hybrid CMG Momentum Desaturation | `projects/thesis.html` — **mobile/reduced-motion fallback only**; the live version is a 3D cubesat orbiting the Moon (`js/moon-scene.js`) |
-| `nonholonomic-cbf.png` | Non Holonomic Control Barrier Function | `projects/ros-research.html` |
-| `sky-crane.png` | Sky Crane | `projects/controls-final-project.html` — **mobile/reduced-motion fallback only**; the live version is a lander fixed to the Moon's surface (`js/moon-scene.js`) |
-| `lunar-hopper.png` | Lunar Hopper | `projects/senior-design-project.html` — **mobile/reduced-motion fallback only**; the live version is a drawn hop trajectory on the Moon, no model at all (`js/moon-scene.js`) |
+If the home scatter field is ever revived instead, see "Projects field" in
+`CLAUDE.md` for what that would involve — its markup was deleted rather than
+commented out, so it is a real rewrite, not a toggle.
 
-## What each one should be
+The other four filenames this document used to ask for — `hybrid-cmg.png`,
+`nonholonomic-cbf.png`, `sky-crane.png`, `lunar-hopper.png` — were never
+supplied, and their `<img>` tags were silently 404ing for the whole life of the
+old field. That is one of the reasons the section moved to real 3D.
 
-A still render or photo of the object on a **transparent background**. Each
-sits directly on open sky — there is no card, no frame and no media well behind
-it, so any background baked into the image will read as a rectangle floating in
-space.
+## If a still is ever needed again
 
-- **PNG with real alpha.** A white or black background is not transparent; it
-  will show. If your CAD tool can only export opaque, say so and the background
-  can be knocked out.
-- **Crop tight to the object.** The image is fitted with `object-fit: contain`
-  inside a box sized per project, so empty margin inside the file just makes the
-  object look smaller than its neighbours.
-- **Roughly these proportions**, so nothing is letterboxed. They are set per
-  object in `index.html` as `--ar` (width ÷ height) and are easy to change if
-  your render comes out differently:
+The two live sources for these objects are:
 
-  | File | Aspect (w ÷ h) | Shape |
-  |---|---|---|
-  | `terragator.png` | 0.67 | tall — a standing rocket |
-  | `navigator.png` | 0.67 | tall — a standing rocket |
-  | `hybrid-cmg.png` | 1.0 | square — the 12U cubesat |
-  | `nonholonomic-cbf.png` | 1.875 | wide — see below |
-  | `sky-crane.png` | 1.15 | slightly wide |
-  | `lunar-hopper.png` | 1.05 | near square |
+- `scripts/model-renders.html` — a standalone dev tool (not part of the built
+  site) that constructs each object as real Three.js primitive geometry and
+  renders it as a white-hairline-outline / transparent-body still. This is what
+  Krittin approved instead of AI-generating pictures of his hardware.
+- `js/system-scene.js` — the live scene, which is where every object's current
+  design actually lives. Keep it and `model-renders.html` in step if either
+  changes.
 
-- **Around 2× the on-screen size** is plenty — roughly 400–800px on the long
-  edge, with the CBF robot at the small end and the floor-wide objects at the
-  large end. These are small objects on the page and this is a static site with
-  no image pipeline, so oversized files cost load time for nothing.
-
-## Two special cases
-
-**`nonholonomic-cbf.png`** — the perspective floor and the dashed line the robot
-tracks are **drawn by the site**, as SVG hairlines, so they match every other
-rule on the page. This file should be **the robot only**, nothing else: no
-floor, no grid, no path. It is composited on top of the drawn floor.
-
-**`lunar-hopper.png`** — this one keeps its *in progress* pill next to the
-title, so a work-in-progress render is fine and expected.
-
-## Naming
-
-Lowercase, hyphenated, exactly as in the table. The filenames are wired into
-`index.html`; renaming a file means editing the matching `src` there.
+The standing rule still holds: **project descriptions, experience entries and
+his headshot must never be generated or invented.** AI generation is permitted
+only for decorative, non-representational assets (the nebula backdrop).

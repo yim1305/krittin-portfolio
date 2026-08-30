@@ -126,14 +126,21 @@ body{
 .nebula{
   position:fixed; inset:0; z-index:0; pointer-events:none;
   background:url("../assets/images/nebula-backdrop.webp") center / cover no-repeat;
-  /* The colour belongs to the HOME page only. --sky-color is driven from
-     scroll by main.js and falls to 0 across the descent, so it is gone by the
-     time About is in place and every section from there on is plain black with
-     white star dots. Project detail pages set it to 0 outright. */
+  /* --sky-color is driven from scroll by main.js. It falls to 0 across the
+     descent, so About and Experience are plain black with white star dots, and
+     it comes back up over Projects (to PROJECT_SKY, not to 1) and stays up
+     through Awards — Krittin: "add nebula to this page as well". Project
+     detail pages set it to 0 outright. */
   opacity:calc(.38 * var(--sky-color, 1));
-  /* Overscaled so the slow drift and the scroll parallax never expose an
-     edge. Raise this if the drift amplitudes in main.js go up. */
-  transform:scale(1.12);
+  /* Overscaled so the drift, the scale breathe and the scroll parallax never
+     expose an edge. Raised three times alongside the drift amplitudes in
+     main.js (1.12 -> 1.19 -> 1.26 -> 1.34) as those went up: Krittin asked
+     for more speed twice after the first pass, and the overscan has to grow
+     with the excursion or a corner of the image reaches the frame.
+     **Raise this before raising the amplitudes in main.js's paint().** Under
+     prefers-reduced-motion it is overridden to `none` below: nothing moves,
+     so no margin is needed. */
+  transform:scale(1.34);
   will-change:transform;
   view-transition-name:nebula-layer;
 }
@@ -374,7 +381,7 @@ section{ position:relative; z-index:1; }
   min-height:2.1em; /* reserve space so layout doesn't jump while typing */
 }
 .hero-name .name-line{ display:block; }
-.hero-name .cursor{
+.hero-name .cursor, .proj-index .cursor{
   display:inline-block; width:.46ch; height:.86em; vertical-align:-.08em;
   margin-left:3px; background:var(--orange);
   animation:blink 1.05s step-end infinite;
@@ -422,7 +429,10 @@ section{ position:relative; z-index:1; }
 }
 .btn-dark{ background:#1f1d1c; color:var(--bone); padding:0 16px; border:1px solid transparent; cursor:pointer; }
 .btn-dark:hover{ background:#2a2725; transform:translateY(-1px); }
-.ghost-link{ border:1px solid var(--ash); color:var(--pale-stone); padding:0 16px; }
+.ghost-link{
+  border:1px solid var(--ash); color:var(--pale-stone); padding:0 16px;
+  background:none; cursor:pointer;
+}
 .ghost-link:hover{ border-color:var(--warm-granite); color:var(--bone); transform:translateY(-1px); }
 .btn-dark .idx, .ghost-link .idx{ color:var(--graphite); }
 .ghost-link:hover .idx{ color:var(--orange); }
@@ -509,10 +519,16 @@ section{ position:relative; z-index:1; }
 
 /* Portrait only. It used to carry a based/program/focus/status block below it;
    that came out, and the photo was grown into the height it freed rather than
-   leaving a gap — so this column, and About's total height, are unchanged. */
+   leaving a gap. NO LONGER a fixed height — Krittin: "make my about me image
+   longer so we can see the entire rocket im hodling" — so this column is now
+   taller than the middle/right ones (About's total height DOES grow with it,
+   unlike before) and `.about-grid`'s `align-items:start` is what lets that
+   happen without stretching the other two columns to match. */
 .about-plate{ display:flex; flex-direction:column; }
 .about-photo{
-  height:440px; border:1px solid var(--ash); border-radius:10px;
+  /* Matches krittin-portrait.jpg's own 548x900 exactly, so `cover` below has
+     nothing to crop — the whole rocket stays in frame at any column width. */
+  aspect-ratio:548/900; border:1px solid var(--ash); border-radius:10px;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
   font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
   background:var(--carbon);
@@ -525,22 +541,43 @@ section{ position:relative; z-index:1; }
 .about-text p{ margin:0 0 16px; }
 .about-text .lead{ color:var(--bone); font-size:18px; margin-bottom:24px; }
 
-/* ---------- education, inside About ----------
-   It had a full section of its own; Krittin folded it back into About, so it
-   is a compact list at the end of the bio column. It costs About no height:
-   the dossier plate opposite is the taller of the two columns. */
+/* ---------- education + coursework, inside About ----------
+   Education had a full section of its own; Krittin folded it back into
+   About, so it is a compact list at the end of the bio column. SIDE BY SIDE
+   with Relevant Coursework now — Krittin: "put relevant course work and
+   education side by side, education left courses right" — `.about-edu-row`
+   just lays the two `.about-edu` blocks out as a row; each still carries its
+   own top hairline and label, so nothing else about them changed. */
+.about-edu-row{ display:flex; gap:32px; }
+.about-edu-row .about-edu{ flex:1; min-width:0; }
 .about-edu{ margin-top:28px; padding-top:20px; border-top:1px solid var(--ash); }
 .about-edu-label{
   font-family:var(--mono); font-size:10px; letter-spacing:.02em;
   text-transform:uppercase; color:var(--graphite); margin-bottom:12px;
 }
-.edu-row{ display:flex; flex-direction:column; gap:2px; margin-bottom:12px; }
+.edu-row{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
 .edu-row:last-child{ margin-bottom:0; }
 .edu-inst{ font-family:var(--sans); font-size:15px; font-weight:500; color:var(--bone); }
-.edu-detail{ font-family:var(--mono); font-size:11px; color:var(--warm-granite); }
+/* Brightened from --warm-granite — Krittin: "education and relevant course
+   work text are hard to read and cannot see". Halving the column width for
+   the side-by-side layout made the previous muted tone read as barely-there
+   in a narrower box; --pale-stone keeps it clearly secondary to .edu-inst
+   without disappearing. */
+.edu-detail{ font-family:var(--mono); font-size:11px; color:var(--pale-stone); }
 
 /* ---------- awards & certificates ---------- */
-.awards{ padding:120px 0; }
+/* Awards is the section the Projects canvas SPILLS INTO — Krittin: "make this
+   page and awards page connected" and "the bottom half just be on the awards
+   page". The globe's lower half is drawn on that canvas, which overflows down
+   past its own section and behind this one, so the two read as one continuous
+   piece of sky rather than as two stacked panels.
+
+   position/z-index is what makes that safe: the canvas sits in its own
+   stacking context at z-index 0 (see .proj-scene), so this section and
+   everything in it paints ABOVE the planet rather than being hidden behind it.
+   The section has no background of its own — if it ever gains one, the globe
+   disappears. */
+.awards{ padding:120px 0; position:relative; z-index:1; }
 .awards-grid{
   display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
   gap:1px; background:var(--ash); border:1px solid var(--ash); border-radius:10px;
@@ -576,8 +613,12 @@ section{ position:relative; z-index:1; }
   background:rgba(255,255,255,.022);
   transition:background-color var(--t-mid) var(--ease);
 }
+/* 3 columns, not 4 — Krittin: "remove one line summary of work and make
+   them all bullet points". The freed 1.5fr that .exp-summary used to own
+   just goes to role-block now; there's no third fr-competitor left to
+   share it with. */
 .exp-head{
-  display:grid; grid-template-columns:52px 1.05fr 1.5fr auto; gap:28px;
+  display:grid; grid-template-columns:52px 1fr auto; gap:28px;
   padding:22px 0; align-items:center;
 }
 /* the rule above each row draws itself in on reveal — reads like a
@@ -602,7 +643,6 @@ section{ position:relative; z-index:1; }
 .exp-role-block{ display:flex; flex-direction:column; gap:5px; }
 .exp-role{ font-family:var(--sans); font-size:22px; color:var(--bone); font-weight:500; letter-spacing:-.01em; }
 .exp-org{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); }
-.exp-summary{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); line-height:1.5; }
 
 /* 0fr -> 1fr is the only way to transition to an auto height. Browsers without
    it simply snap the panel open, which loses nothing but the ease. */
@@ -630,7 +670,6 @@ section{ position:relative; z-index:1; }
 .exp-row:hover{ background:rgba(250,250,250,.95); }
 .exp-row:hover .exp-role{ color:var(--void); }
 .exp-row:hover .exp-org,
-.exp-row:hover .exp-summary,
 .exp-row:hover .exp-highlights li{ color:rgba(6,7,10,.72); }
 .exp-row:hover .exp-index,
 .exp-row:hover .exp-date,
@@ -638,19 +677,57 @@ section{ position:relative; z-index:1; }
 .exp-row:hover .exp-tag{ color:#2f6a20; }
 
 /* ---------- projects ---------- */
-/* Top-weighted like About, and for the same kind of reason: the project field
-   is one fixed-height diorama and the 120px rhythm the other sections keep was
-   eating the vertical room it needs to fit a laptop screen. */
-/* overflow:hidden is load-bearing, not tidiness. The Moon is deliberately
-   larger than the field and hangs off its bottom-right corner — 7% of the
-   field's width past the right edge and 52% of its own diameter below. Left
-   unclipped that reaches past the viewport on anything at or under ~1200px
-   wide (a horizontal scrollbar on the whole page) and spills down over the
-   Awards cards, which are transparent and would show it through. Clipping at
-   the SECTION rather than at .proj-field is the point: it still leaves the
-   ~100px of section above the field — the top padding plus the eyebrow — for
-   the launch rocket to fly in through. */
-.projects{ padding:56px 0 40px; border-top:1px solid var(--ash); overflow:hidden; }
+/* Top-weighted like About, and for the same kind of reason: the section holds
+   one 3D scene that wants to be as tall as it can be, and the 120px rhythm
+   the other sections keep was eating the vertical room it needs on a laptop.
+   overflow:hidden is now only belt and braces — the scene is clipped to its
+   own canvas box anyway, and nothing here hangs outside the field the way the
+   old oversized Moon did — but it still guarantees a stray label can never
+   put a horizontal scrollbar on the page. */
+/* NO border-top. Every other section boundary on this page is unruled too, and
+   Krittin asked for this one specifically: "dont break the page between this
+   and the page before (make them connected)". The hairline read as a seam
+   between Experience and Projects, which is wrong here — the globe rides out
+   of Experience and the Earth/Moon system takes over, and that should feel
+   like one continuous piece of sky rather than two stacked panels. */
+.projects{ padding:56px 0 40px; overflow:hidden; }
+
+/* EXACTLY one screen, not merely at least one — Krittin: "make everything fit
+   in 1 full page without having to scroll down". Every other section uses
+   min-height so it can grow past the viewport if its content needs to; this
+   one must not, because its content is a single composition that is *designed*
+   to its frame. Capping the height means the scene simply solves its framing
+   for a shorter box instead of pushing the page down.
+   The padding is tighter than the shared value for the same reason: it is all
+   room the scene would otherwise lose.
+   Desktop only. The stacked layout below 900px is a scrolling column by
+   design — a canvas plus a six-item list does not fit a phone screen, and
+   pinning it there would clip the index. */
+@media (min-width: 901px){
+  .projects{
+    height:calc(100vh - 64px); max-height:calc(100vh - 64px); padding:32px 0 24px;
+    /* overflow VISIBLE, deliberately, despite the hard height above. Earth is
+       drawn whole and its lower half carries on past this section into Awards
+       — Krittin: "the earth make it full (stay same place) the rest of the
+       earth just go over to the next page". Clipping here is exactly the hard
+       straight edge he was objecting to. Nothing else can overflow: the canvas
+       sits inside .section-inner's gutter, so there is no horizontal spill to
+       worry about, and the height cap still keeps the section itself to one
+       screen. */
+    overflow:visible;
+    /* flex-start, NOT the shared centre. With a hard height and
+       overflow:hidden, `justify-content:center` overflows BOTH ends the moment
+       content is a pixel too tall — and the top half is then unreachable,
+       because there is no scrolling inside a clipped box. That is how the
+       section eyebrow disappeared. Packing to the top means any overflow can
+       only ever fall off the bottom, where the scene has slack to give. */
+    justify-content:flex-start;
+  }
+  /* Lets the inner column shrink under a short viewport instead of forcing the
+     section past its own cap. Flex items default to min-height:auto, which
+     refuses to go below content size. */
+  .projects .section-inner{ min-height:0; }
+}
 .projects-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; }
 .proj-card{
   border:1px solid var(--ash); border-radius:10px; overflow:hidden;
@@ -790,234 +867,297 @@ section{ position:relative; z-index:1; }
 }
 
 /* ---------- projects field (the live Projects section) ----------
-   One fixed-scatter diorama instead of cards: still images (plus, on the
-   Moon, real 3D objects) placed at explicit coordinates over open sky, each
-   with nothing but its title under it.
+   ONE fixed 3D Earth/Moon system on a single full-bleed canvas
+   (js/system-scene.js), replacing the fixed-scatter diorama of still images
+   that used to live here.
 
-   - The objects in space are placed against .proj-field — --x is the
-     model's horizontal CENTRE, --y its TOP edge, both percentages of the
-     field. Top rather than centre because it makes "does this clear the
-     Moon's edge" arithmetic something you can do in your head.
-   - There used to be a second coordinate system (--mx/--my, percentages of
-     .proj-moon's own box) welding Sky Crane and Lunar Hopper to the limb.
-     Both are real 3D now — a lander fixed to the surface and a trajectory
-     arc, respectively, positioned by js/moon-scene.js, not CSS — so that
-     system is gone along with them. Only the CMG cubesat's orbit lives on
-     the Moon alongside them, and it was never on this system either (per
-     Krittin's request it does not stay welded to one spot at all).
+   Almost all of this section's CSS went with it. There is no --x/--y
+   placement system any more, no --obj-scale, no --moon-d, no per-object
+   boxes and no flat stills: every one of the six projects is real 3D,
+   positioned inside the scene against its own design frame, so the arithmetic
+   that used to live in these rules now lives in that file's LAYOUTS table.
+   What is left here is the canvas's box, the label layer over it, and the
+   small side index.
 
-   --obj-scale is the single dial for "everything is too big for this screen".
-   The positions are percentages so they rescale on their own; only the object
-   footprints are in px, and this is what shrinks them. */
+   The scene composes itself to whatever box it is given — it picks one of
+   three layout presets from the canvas's aspect ratio — so this box only has
+   to be as large as the section will allow, and needs no dials of its own. */
 /* The one section that drops the shared measure entirely. About and Experience
-   widen to 1560px; this goes edge to edge, because the objects are scattered
-   rather than set in a column and holding them inside 1200px bunched them into
-   the middle third of a wide screen. The 48px gutter is all that is left of
-   the shell. */
+   widen to 1560px; this goes edge to edge, so the Earth/Moon system gets the
+   full width of the screen. The 48px gutter is all that is left of the shell. */
 .projects .section-inner{
   display:flex; flex-direction:column; flex:1 1 auto;
   max-width:none; padding:0 48px;
 }
 
+/* Exactly one screen, which the section's own min-height already sets: the
+   composition is designed to fit its frame rather than overflowing it, so
+   unlike the old field this never pushes Projects past a single view. */
+/* min-height is a floor for pathological cases only, deliberately low: with
+   .projects capped to one screen (above), a tall floor here would push content
+   past the cap on a short window and get clipped by its overflow:hidden. The
+   scene would rather be short than cropped. */
 .proj-field{
-  --obj-scale:1;
-  /* Owned here, not on .proj-moon, so .proj-field's own min-height can react
-     to it too (see below). The Moon moved from the right edge to the CENTRE
-     of the field (Krittin: "make moon... bigger and put in the middle
-     instead"), with the two rockets now standing to its right and the CBF
-     robot staying roughly where it was to its left — so the Moon no longer
-     gets to claim a whole half of the width the way it did when it owned one
-     edge; 43vw leaves real clearance on both sides instead of one — the CBF
-     floor on the left needs roughly 28% of the field for its own footprint,
-     so the Moon's left edge (50% − half its width) has to stay clear of that
-     without Krittin having to also move the CBF floor. Still sized off
-     whichever of viewport WIDTH or HEIGHT is more restrictive, for the same
-     "must fit on one screen" reason as before. */
-  /* Bigger again ("make moon bigger!!") — width share, height budget, floor
-     and ceiling all went up. The two rockets moved further right to keep
-     clear of it (see the markup comment in index.html). */
-  --moon-d:calc(clamp(550px, min(47vw, calc(100vh - 100px)), 1150px) * var(--obj-scale));
-  position:relative; flex:1 1 auto; margin-top:4px;
-  /* Tall enough for the Moon to sit fully inside without .projects' own
-     overflow:hidden clipping it — which used to be the point (see .proj-moon),
-     but now clips an object that has to stay fully visible (the CMG cubesat's
-     orbit swings behind the Moon at every angle, not just the front). Because
-     --moon-d is itself bounded to a fraction of viewport height, this stays
-     within one screen on any realistic viewport instead of forcing the
-     section past it. */
-  min-height:max(480px, calc(var(--moon-d) + 48px));
+  position:relative; display:flex; flex:1 1 auto; margin-top:4px;
+  min-height:280px;
 }
 
+/* --scene-spill is how this stylesheet tells js/system-scene.js how much
+   TALLER the canvas is than the section it sits in. 1 = flush; the desktop
+   rule below raises it, and the canvas's own height is derived from the same
+   number so the two can never drift apart.
+
+   This is what makes Earth a WHOLE globe. Krittin: "dont crop off earth maek
+   erth a full globe (keep it where it is, the bottom half just be on the
+   awards page)" and "make this page and awards page connected". Earth's centre
+   sits at 112% of the design frame's height with a radius of 46%, so its limb
+   reaches 161% — a canvas cut at the section boundary sliced it off with a
+   hard straight edge, which was both the crop and the seam between the two
+   sections.
+
+   The scene reads the number per resize and still frames EVERYTHING — the
+   layout preset, the contain-fit, the camera distance — against the
+   SECTION-visible height, never the taller canvas. That is what lets more of
+   the globe become visible without it moving or changing size by a pixel; see
+   the spill note in resize(). z-index:0 puts the overflowing canvas below the
+   Awards content it now runs behind (see .awards). */
+.proj-scene{ --scene-spill:1; position:relative; z-index:0; flex:1 1 auto; min-width:0; }
+/* The cursor is set from JS, not here: the scene swaps it to `pointer` only
+   while the pointer is actually over one of the six models.
+   The label layer stays at the PANE's height and is not spilled with the
+   canvas: labels are placed by transform from the same top-left origin, and
+   the scene clamps them to the section-visible band so none can land over the
+   Awards cards. */
+.system-canvas{
+  display:block; width:100%; height:calc(100% * var(--scene-spill)); touch-action:pan-y;
+}
+
+/* THE SPILL ITSELF, and it MUST come after the `--scene-spill:1` default
+   above. A media query adds no specificity, so putting this earlier in the
+   file — which is where it was first written, up with the other .projects
+   desktop rules — meant the unconditional default simply overrode it and the
+   whole mechanism did nothing. Earth stayed cropped and the two sections
+   stayed visibly separate. If this rule ever moves, it moves DOWN, never up.
+
+   1.68 is not a round number: Earth's limb ring reaches 161% of the design
+   frame's height, so anything under about 1.62 puts a straight cut back across
+   the bottom of the globe, which is the exact thing this is here to remove.
+   The surplus over that is sky.
+
+   Desktop only. Below 900px the section is a scrolling column with the index
+   list flowing directly under the canvas, and a canvas 68% taller than its box
+   would simply cover it. */
+@media (min-width: 901px){
+  .proj-scene{ --scene-spill:1.68; }
+}
+
+/* One plain-text label per project, positioned every render from its object's
+   real 3D position. The layer ignores the pointer; each label takes it back,
+   so the empty sky between them is never a click target. */
+.system-labels{
+  position:absolute; inset:0; pointer-events:none;
+  opacity:0; /* raised by the scene as it arrives */
+  transition:opacity .5s var(--ease-out);
+}
+/* NO BOX. Krittin was explicit — "[no box just text]" — so there is no chip,
+   no border and no leader line, unlike the version before it. That puts the
+   whole burden of legibility on placement, which is why the offsets in
+   PROJECTS keep each label off the bodies rather than relying on a backing
+   plate to survive being on one. Placement itself is now partly dynamic too —
+   system-scene.js's render() pushes a label off Earth's or the Moon's disc if
+   dx/dy alone would leave it sitting on top of one; see clearBody() there.
+
+   Bigger and brighter than before — Krittin: "fix all the texts that are next
+   to robots as well (make them bigger!!!) and more visible". Up from 13px/
+   pale-stone to 16px/500-weight/bone; still mono, still lowercase, still no
+   box — the size and weight carry the legibility instead. */
+.proj-label{
+  position:absolute; top:0; left:0; pointer-events:auto;
+  font-family:var(--mono); font-size:16px; font-weight:500; letter-spacing:.01em;
+  text-transform:lowercase; white-space:nowrap;
+  color:var(--bone); text-decoration:none;
+  transition:color var(--t-fast) var(--ease);
+}
+/* .is-hot is set by the scene, not by :hover, because the highlight has three
+   possible sources — the label, the index row, and the 3D object itself — and
+   only one of them is this element. */
+.proj-label.is-hot, .proj-label:hover{ color:var(--chalk); }
+
 /* --- project index (small side list) --- */
-/* A guaranteed-clickable fallback to the scatter, not a replacement for it —
-   see the markup comment in index.html. Deliberately plain: no art, no
-   hover-lift, just titles, so it doesn't visually compete with the diorama
-   for attention. z-index is only there because the trajectories/Moon both
-   also occupy the top-left-ish region at some viewport sizes. */
+/* A guaranteed-clickable companion to the scene, not a replacement for it —
+   see the markup comment in index.html. It is also the only place the FULL
+   project titles appear; the scene's own labels are abbreviated to keep them
+   readable at label size. Deliberately plain: no art, no hover-lift, just
+   titles, so it doesn't compete with the scene for attention. z-index keeps
+   it above the canvas, which fills the whole field behind it.
+
+   TOP LEFT, and larger — Krittin: "leave space to put the index as well...
+   (and make them bigger than they are now (i want them top left)". It sat
+   bottom-right before that, and before THAT it sat top-left and was covering
+   the section's own "03 — projects & papers" eyebrow. It no longer can: the
+   eyebrow is in normal flow at the top of .section-inner and this is pinned to
+   the top of .proj-field, which begins below it, so the two now STACK — title,
+   then the six project names — rather than fighting for the same pixels.
+
+   The scene was recomposed around this rather than the other way round. The
+   flyby's outbound leg used to climb straight through this corner; it now
+   leaves Earth's upper-RIGHT limb and climbs up the middle, so nothing in the
+   composition comes inside roughly the top-left 26% x 46% of the canvas. See
+   OUTBOUND_START in js/system-scene.js — change one and check the other.
+
+   SIX SEPARATE LINES, NOT A BOX. Krittin: "redesign index, make them separate
+   and text larger more visible". The bordered, tinted panel it used to sit in
+   read as a widget parked on the artwork; without it the titles read as part
+   of the same composition as the floating labels, which is what they are. The
+   trade is that the text has to survive on open sky unaided, which is what the
+   reserved corner above is for.
+
+   No heading. Krittin: "dont put 'index' just put the project names". The
+   aria-label is the only place the word survives, for a screen reader that
+   needs to know what the six links are. */
+/* SPLIT INTO TWO BOXES — Krittin: "split up research and projects, put
+   research top left and put all the projects bottom right". Both variants
+   share this base rule and only differ in which corner they're pinned to
+   (.proj-index-research / .proj-index-projects, right below); everything
+   else — size, no-heading, six-links-total across the two — stays one
+   system. The bottom-right corner is a NEW reservation, mirroring the
+   top-left one described above; UNVERIFIED against the scene's Moon-side
+   composition (crane, hopper, the homebound leg) the way the top-left corner
+   was checked against the outbound leg — see OUTBOUND_START in
+   js/system-scene.js if this needs to move again.
+
+   1.5x again — Krittin: "make the index text 1.5x all bigger". Up from 26px
+   to 39px, with gap and max-width scaled the same amount so the larger text
+   doesn't crowd or wrap any harder than it did before. */
 .proj-index{
-  position:absolute; left:0; top:0; z-index:3;
-  display:flex; flex-direction:column; gap:7px;
-  max-width:190px; padding:14px 16px;
-  border:1px solid var(--ash); border-radius:10px; background:rgba(8,9,13,.55);
+  position:absolute; z-index:3;
+  display:flex; flex-direction:column; align-items:flex-start; gap:27px;
+  max-width:510px; text-align:left;
 }
-.proj-index-eyebrow{
-  display:flex; align-items:center; gap:6px; margin-bottom:2px;
-  font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--graphite);
-}
-.proj-index-eyebrow .dot{ width:5px; height:5px; border-radius:50%; background:var(--orange); }
+.proj-index-research{ left:0; top:6px; }
+/* Right-justified — Krittin: "make the bottom right indices right justified
+   and put inprogress in front then year then name". `align-items:flex-end`
+   pulls every row's own edge flush against the container's right edge
+   regardless of how long the title is; `row-reverse` on each row (below)
+   is what actually reorders status/year/title without touching the DOM, so
+   initIndexTyping() in js/main.js still finds the right title/year/status
+   elements — it only cares about the elements, never their visual order. */
+.proj-index-projects{ right:0; bottom:6px; align-items:flex-end; text-align:right; }
+.proj-index-projects a{ flex-direction:row-reverse; }
+/* Research rows wrap so .proj-program (below) can force itself onto a
+   second line under title/year/status rather than sitting inline after
+   them — Krittin: "put USP and thesis (brackets) under the index title". */
+.proj-index-research a{ flex-wrap:wrap; }
 .proj-index a{
-  font-family:var(--sans); font-size:12.5px; line-height:1.3;
+  position:relative; display:flex; align-items:baseline; gap:12px;
+  font-family:var(--sans); font-size:39px; font-weight:500; line-height:1.25;
   color:var(--pale-stone); text-decoration:none;
   transition:color var(--t-fast) var(--ease);
 }
-.proj-index a:hover{ color:var(--bone); }
+/* The year sits after the title as quiet mono metadata, not as part of the
+   name — same register as the eyebrows and the hero's status strip. It does
+   NOT get typed (see initIndexTyping in main.js); it fades in once its row
+   has finished typing. `flex-shrink:0` keeps "In progress" on one line when a
+   long title (Hybrid CMG Momentum Desaturation) wraps beside it.
 
-/* --- the objects --- */
-.proj-obj{
-  position:absolute; left:var(--x); top:var(--y); transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  text-decoration:none;
-  transition:opacity var(--t-slow) var(--ease-out);
+   Visible BY DEFAULT and hidden by the JS (`.is-pending`) rather than the
+   other way round: if main.js never runs, the years must still show. */
+.proj-year{
+  flex-shrink:0;
+  font-family:var(--mono); font-size:19.5px; font-weight:400; letter-spacing:.02em;
+  text-transform:uppercase; color:var(--graphite); white-space:nowrap;
+  transition:opacity var(--t-mid) var(--ease-out), color var(--t-fast) var(--ease);
 }
-.proj-obj-model{
-  position:relative;
-  width:calc(var(--w) * var(--obj-scale));
-  aspect-ratio:var(--ar, 1);
-  display:flex; align-items:center; justify-content:center;
-  /* Two separate properties, deliberately. The entrance offset rides on
-     `translate` and the hover lift on `transform`, so the .lit rule that
-     clears the entrance cannot also out-specify the hover — which it would,
-     being four classes deep against the hover's two. */
-  transition:transform var(--t-mid) var(--ease-out), translate var(--t-slow) var(--ease-out);
+.proj-year.is-pending{ opacity:0; }
+.proj-index a.is-hot .proj-year, .proj-index a:hover .proj-year{ color:var(--warm-granite); }
+/* "In progress" pill, after the year — CBF, CMG and Lunar Hopper carry one
+   now that Lunar Hopper's year is the real 2026 rather than this text (see
+   the table in CLAUDE.md). Reuses .proj-status, the badge the old inert flat
+   grid used for the same words, rather than inventing a second status
+   style; scoped here instead of resizing the shared class so its 10px
+   default stays put wherever else it's used. Fades in with the year, off
+   the SAME typing-finished flag — see the .status addition in
+   initIndexTyping() (js/main.js). */
+.proj-index .proj-status{
+  font-size:15px; padding:3px 13px; margin-left:0;
+  transition:opacity var(--t-mid) var(--ease-out);
 }
-.proj-obj:hover .proj-obj-model{ transform:translateY(-5px); }
-
-/* Placeholder until the still exists. Same language as every other empty well
-   on the site: hairline --ash on --carbon, mono caption, no dashes or icons. */
-.proj-ph{
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center; text-align:center;
-  padding:0 10px;
-  border:1px solid var(--ash); border-radius:10px; background:var(--carbon);
-  font-family:var(--mono); font-size:9px; letter-spacing:.02em;
+.proj-index .proj-status.is-pending{ opacity:0; }
+/* Program tag — "(usp)"/"(thesis)" — on its own line under the row (see the
+   flex-wrap note above). Same quiet mono register as .proj-year, and fades
+   in on the same typing-finished flag (see the .program addition in
+   initIndexTyping(), js/main.js) rather than appearing before its title has
+   even finished typing. */
+.proj-program{
+  flex-basis:100%;
+  font-family:var(--mono); font-size:14px; letter-spacing:.02em;
   text-transform:uppercase; color:var(--graphite);
+  transition:opacity var(--t-mid) var(--ease-out), color var(--t-fast) var(--ease);
 }
-/* The floor IS this one's visual, so the placeholder must not cover it. */
-.proj-obj--ground .proj-ph{ background:transparent; border:0; align-items:flex-start; }
-
-/* Starts hidden and is revealed by initProjectField once the image actually
-   decodes, so a missing file shows the placeholder rather than a broken-image
-   glyph. Dropping the six PNGs in is therefore the whole handoff — no markup
-   change, no rebuild. */
-.proj-art{
-  position:relative; z-index:1;
-  width:100%; height:100%; object-fit:contain;
-  opacity:0; transition:opacity var(--t-slow) var(--ease-out);
-}
-.proj-obj.has-art .proj-art{ opacity:1; }
-.proj-obj.has-art .proj-ph{ display:none; }
-
-/* Mobile/reduced-motion-only fallback for the three Moon-scene projects
-   (Hybrid CMG, Sky Crane, Lunar Hopper) — see the markup comments in
-   index.html. Each live version is real 3D in js/moon-scene.js; these plain
-   stills only ever show up in the one layout where the Moon canvas doesn't
-   mount at all. */
-.proj-obj--moon-fallback{ display:none; }
-
-.proj-obj-label{
-  position:relative; text-align:center;
-  max-width:calc(var(--w) * var(--obj-scale) + 70px);
-  font-family:var(--sans); font-size:15px; font-weight:500; line-height:1.35;
-  color:var(--pale-stone);
-  transition:color var(--t-fast) var(--ease);
-}
-/* The rule draws itself in under the title — the same gesture the experience
-   rows use, rather than a glow or a box. */
-.proj-obj-label::after{
-  content:""; position:absolute; left:0; right:0; bottom:-5px; height:1px;
+.proj-program.is-pending{ opacity:0; }
+.proj-index a.is-hot .proj-program, .proj-index a:hover .proj-program{ color:var(--warm-granite); }
+/* Types in like a terminal boot log the first time the section scrolls into
+   view — js/main.js's initIndexTyping(). Reuses the hero name's block cursor
+   (same class, same blink) rather than inventing a second cursor style, per
+   Krittin's "space scifi theme" ask; it's the one glow-free, already-orange
+   accent this site already uses for "still composing". */
+.proj-index .cursor{ margin-left:2px; }
+/* The rule draws itself in under the title — the same gesture the Experience
+   rows use, rather than a glow or a box. It grows from the LEFT now, the edge
+   the block is anchored to. */
+.proj-index a::after{
+  content:""; position:absolute; left:0; right:0; bottom:-4px; height:1px;
   background:var(--bone); transform:scaleX(0); transform-origin:left;
   transition:transform var(--t-mid) var(--ease-out);
 }
-.proj-obj:hover .proj-obj-label{ color:var(--bone); }
-.proj-obj:hover .proj-obj-label::after{ transform:scaleX(1); }
+/* .is-hot is set by the scene so that hovering the 3D model lights this row
+   too; :hover covers the pointer being on the row itself. */
+.proj-index a.is-hot, .proj-index a:hover{ color:var(--chalk); }
+.proj-index a.is-hot::after, .proj-index a:hover::after{ transform:scaleX(1); }
 
-/* --- the Moon --- */
-/* A live WebGL body (js/moon-scene.js), not an image: it spins on its own and
-   can be dragged, in the hero globe's treatment. The box is square, and the
-   scene's orthographic camera is sized (FRUSTUM_R in js/moon-scene.js) so the
-   visible disc inscribes it — but unlike before, nothing in CSS depends on
-   knowing that fraction any more. Every object on the Moon (the CMG cubesat's
-   orbit, the Sky Crane lander, the Lunar Hopper trajectory) is real 3D
-   positioned by js/moon-scene.js itself, not CSS percentages, so changing
-   FRUSTUM_R is now purely that file's own concern.
+/* --- project hover/tap preview panel --- */
+/* Replaces straight-to-page navigation with a preview: hovering a model, its
+   label or its index row opens this instead. js/system-scene.js sets
+   `top`/`left`/`right` inline, anchored to the hovered model's own on-screen
+   position (not a canvas edge) — Krittin: "it doesnt matter if it blocks
+   other object just put it next to the model instead of far away from
+   them". `.dock-left`/`.dock-right` here only pick which edge the JS values
+   apply to and which way the panel eases in from; the position itself is
+   JS's job. Overlapping Earth, the Moon or another model is expected now.
 
-   The Moon is sized against --moon-d, owned by .proj-field so its min-height
-   can react to the same number (see there).
-
-   Fully on screen, not hanging off an edge — .proj-field's own box is tall
-   enough to fit it (see min-height there). This is also what fixed the CMG
-   cubesat going invisible on the far side of its orbit: that used to be real
-   geometry rendering correctly into a canvas whose own box was clipped by
-   .projects' overflow:hidden.
-
-   Centred in the field now (left/top 50% + translate -50%/-50%), not
-   anchored to the right edge — Krittin moved it here explicitly so the two
-   rockets could take the right side instead, "put in the middle." True
-   centring on both axes, not just horizontal: .proj-field's min-height
-   already guarantees a few px of margin above and below (see there), so
-   nothing is lost by centring vertically too. */
-.proj-moon{
-  position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
-  width:var(--moon-d); height:var(--moon-d);
-  pointer-events:none; /* scenery; the canvas and its objects take it back */
+   Same flat surface as everywhere else — obsidian, one hairline, no shadow. */
+.proj-info{
+  position:absolute; z-index:4;
+  width:min(320px, 34%); max-height:58%; overflow:hidden;
+  padding:20px; border:1px solid var(--ash); border-radius:10px;
+  background:var(--obsidian);
+  display:flex; flex-direction:column; gap:10px;
+  opacity:0; pointer-events:none;
+  transition:opacity var(--t-mid) var(--ease), transform var(--t-mid) var(--ease-out),
+             left var(--t-mid) var(--ease-out), right var(--t-mid) var(--ease-out),
+             top var(--t-mid) var(--ease-out);
 }
-.moon-canvas{
-  display:block; width:100%; height:100%;
-  pointer-events:auto; cursor:grab; touch-action:none;
+.proj-info.is-open{ opacity:1; pointer-events:auto; }
+/* The two dock sides differ only in which way they ease in from — a few px
+   toward the model, not a slide — and are both vertically centred on the
+   `top` JS sets, which is the model's own screen y. */
+.proj-info.dock-right{ transform:translate(8px, -50%); }
+.proj-info.dock-right.is-open{ transform:translate(0, -50%); }
+.proj-info.dock-left{ transform:translate(-8px, -50%); }
+.proj-info.dock-left.is-open{ transform:translate(0, -50%); }
+.proj-info-media{
+  height:120px; border:1px solid var(--ash); border-radius:6px; background:var(--carbon);
+  overflow:hidden;
 }
-.moon-canvas.dragging{ cursor:grabbing; }
-/* All three of the CMG cubesat, the Sky Crane lander and the Lunar Hopper
-   trajectory's labels — positioned every frame by moon-scene.js from their
-   real 3D positions, not from CSS percentages; there is no more mx/my
-   placement system on the Moon. Same visual language as the hero's cubesat
-   labels — .cubesat-label is shared, not duplicated. */
-.moon-labels{
-  position:absolute; inset:0; pointer-events:none;
-  opacity:0; /* raised by the scene once its own arrival animation lands */
-  transition:opacity .5s var(--ease-out);
+.proj-info-media img{ width:100%; height:100%; object-fit:cover; display:block; }
+.proj-info-title{ font-family:var(--sans); font-size:16px; font-weight:500; color:var(--bone); }
+.proj-info-desc{ font-family:var(--sans); font-size:13px; color:var(--warm-granite); line-height:1.55; }
+.proj-info-link{
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+  text-decoration:none; margin-top:auto; transition:color var(--t-fast) var(--ease);
 }
+.proj-info-link:hover{ color:var(--bone); }
 
-/* --- the CBF floor --- */
-.ground-plane{ position:absolute; inset:0; width:100%; height:100%; }
-/* The robot is a small object standing ON a wide floor, not a wide image.
-   Left to the shared .proj-art rule it would be fitted to the full 300×160
-   box and read as a picture of a robot rather than a robot on a plane, so it
-   is pinned to a patch near the front of the plane instead — roughly where
-   the dashed path starts. Nudge left/bottom to move it along the line. */
-.proj-obj--ground .proj-art{
-  position:absolute; left:32%; bottom:13%;
-  width:24%; height:auto; max-height:58%;
-  object-position:bottom; transform:translateX(-50%);
-}
-
-/* --- entrance --- */
-/* Gated behind .js-field, which initProjectField adds, so that a JS failure
-   leaves the whole field plainly visible instead of blank. */
-.proj-field.js-field .proj-obj{ opacity:0; }
-.proj-field.js-field .proj-obj .proj-obj-model{ translate:0 14px; }
-.proj-field.js-field .proj-obj.lit{ opacity:1; }
-.proj-field.js-field .proj-obj.lit .proj-obj-model{ translate:0 0; }
-
-/* Now that the field runs edge to edge, WIDTH is the binding constraint, not
-   height — the objects are spread horizontally and it is the horizontal gaps
-   that close first. The positions are percentages and rescale themselves; only
-   the px footprints need help, which is all --obj-scale touches. The
-   max-height rule only shortens the field, so a short screen compresses the
-   vertical gaps rather than shrinking anything. */
-@media (max-width: 1500px){ .proj-field{ --obj-scale:.88; } }
-@media (max-width: 1250px){ .proj-field{ --obj-scale:.76; } }
-@media (max-height: 800px){ .proj-field{ min-height:480px; } }
 
 /* ---------- skills (lives inside About, not its own section) ---------- */
 .sprite{ position:absolute; width:0; height:0; overflow:hidden; }
@@ -1098,14 +1238,65 @@ section{ position:relative; z-index:1; }
   view-transition-name:proj-title;
 }
 .detail-sub{ font-family:var(--sans); font-size:16px; color:var(--warm-granite); max-width:640px; line-height:1.55; }
+/* Classification pill under the sub-line — currently just "undergraduate
+   honors thesis" on thesis.html. Reuses .tag rather than a new pill style;
+   own class only so it isn't mistaken for the tools &amp; methods row. */
+.detail-tags{ margin-top:16px; }
+/* The paper (and, once a repo exists, the code) as an actual visible call to
+   action instead of a line buried in the facts sidebar — Krittin: "add
+   button somewhere make it visible so they can access the paper", same ask
+   for the code link. Reuses .paper-btn's exact look for both; the facts
+   column no longer carries its own paper row (see the research template). */
+.detail-cta{ display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
 .detail-media{ max-width:1200px; margin:40px auto 0; padding:0 40px; }
 .detail-media-inner{
-  min-height:320px; max-height:520px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
+  position:relative; min-height:320px; max-height:520px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
   font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
   view-transition-name:proj-media;
 }
-.detail-media-inner img, .detail-media-inner video{ width:100%; height:100%; object-fit:cover; }
+.detail-media-inner img, .detail-media-inner video, .detail-media-inner canvas{ width:100%; height:100%; object-fit:cover; display:block; }
+/* `.detail-media-inner` only sets min/max-height (content decides actual
+   height), which img/video fill fine via their own intrinsic aspect ratio —
+   but a canvas's percentage height needs a definite parent height to
+   resolve against. thesis.html's #cmg-canvas is the one page using a canvas
+   here, so it gets an explicit height instead of changing the shared rule
+   every other project page's img/video relies on. */
+#cmg-canvas{ height:460px; }
+/* Krittin: "remove the backgrounds" ... "no border around or anything" — the
+   WebGL renderer already clears to transparent, but `.detail-media-inner`'s
+   own carbon fill and hairline border sat around it regardless. Scoped to a
+   modifier rather than changing the shared default, since every other
+   project page's placeholder text/real image or video still wants that
+   dark fill + border for contrast/definition. */
+.detail-media-inner--transparent{ background:transparent; border:none; border-radius:0; }
+/* CMG animation's position/time readout (js/cmg-scene.js) — plain HTML text
+   over the canvas rather than a redrawn-every-frame canvas texture, since
+   the numbers change every frame and a DOM textContent update is far
+   cheaper than regenerating a CanvasTexture that often. `pointer-events:none`
+   so it never blocks a click through to whatever sits behind it. */
+.cmg-hud{
+  position:absolute; left:14px; bottom:12px; pointer-events:none;
+  font-family:var(--mono); font-size:16px; line-height:1.6; color:var(--bone);
+  text-transform:none; white-space:pre;
+}
+/* Lead area as an N-up grid instead of one shot — for a project with several
+   "finished product" images meant to sit together up top, unlike the
+   research pages' single lead + scattered figures. `--gallery-cols` is set
+   per page (inline style, default 2) rather than a fixed 2- or 3-up class,
+   so it covers whatever count a given project needs. */
+/* Sky Crane's second Simulink model, sitting just under the lead box — see
+   the note in controls-final-project.html. Reuses .detail-media's own
+   page-width column so it lines up with the box above it; the actual
+   asymmetry comes from .detail-figure--inset.align-left on the figure
+   itself (70% width, pushed to one side) rather than a mirrored 2-up grid. */
+.sim-secondary{ max-width:1200px; margin:32px auto 0; padding:0 40px; }
+.sim-secondary .detail-figure{ margin:0; }
+
+.detail-media-inner.detail-gallery{
+  display:grid; grid-template-columns:repeat(var(--gallery-cols, 2), 1fr); gap:2px;
+}
+.detail-gallery > *{ display:flex; align-items:center; justify-content:center; text-align:center; }
 .detail-body{ max-width:1200px; margin:0 auto; padding:56px 40px 96px; display:grid; grid-template-columns:280px 1fr; gap:56px; }
 .facts{ display:flex; flex-direction:column; gap:28px; }
 .fact-block{ display:flex; flex-direction:column; gap:8px; }
@@ -1123,6 +1314,116 @@ section{ position:relative; z-index:1; }
 .desc p{ margin:0 0 20px; }
 .desc h3{ font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
 .desc h3:first-child{ margin-top:0; padding-top:0; border-top:none; }
+/* "my responsibility" lists on research pages — a plain dash marker rather
+   than a browser bullet, same flat/no-decoration register as the rest of
+   the page; no colour accent, since orange/green stay functional-only. */
+.desc ul{ list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:10px; }
+.desc li{ position:relative; padding-left:20px; }
+.desc li::before{ content:"—"; position:absolute; left:0; color:var(--graphite); }
+
+/* Extra research-page media, scattered through the reading column instead of
+   packed into one gallery grid up top — Krittin: "images dont need to all be
+   side by side (make them different for each project and placements can be
+   more abstract)", and pages are free to run long now ("dont need to be
+   fixed to 1 page can be longer and can scroll"). `.detail-media` above
+   stays the one lead shot (video or image — it's whichever is most
+   representative) and keeps the page's only `view-transition-name:proj-media`;
+   these live INSIDE `.desc`, between whichever paragraphs make sense for
+   that project, so where they land and how wide they run is a per-page,
+   per-image call, not a system every project has to share.
+   `.detail-figure-media` repeats `.detail-media-inner`'s box exactly, minus
+   that transition name (a second element can't carry the same one). */
+.desc .detail-figure{ margin:40px 0; }
+.detail-figure-media{
+  min-height:220px; max-height:440px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+}
+.detail-figure-media img, .detail-figure-media video{ width:100%; height:100%; object-fit:cover; }
+/* Anything with information at the edges — a plot's axis labels, a
+   diagram's boxes, a log screenshot's last line — can't take the same
+   crop-to-fill photos get. TerraGator's ACS 3/ACS 4 flight plots were the
+   first case (a box much wider than tall was slicing the axis label and
+   legend off); Navigator's software-design diagram and its three flight-log
+   screenshots need the same treatment for the same reason. `contain`
+   letterboxes instead, inside the same carbon box, so nothing at an edge is
+   ever lost. Add this class to any image in a .detail-figure or
+   .detail-gallery where cropping would cost real information. */
+.detail-figure-media img.is-chart, .detail-gallery img.is-chart{ object-fit:contain; }
+.detail-figure figcaption{
+  margin-top:10px; font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+}
+/* The "abstract" half — a figure at reduced width, pushed to one edge of the
+   column instead of running full width like the default. Use on SOME images
+   on a page, not all, so the rhythm varies rather than becoming a second
+   rigid grid. */
+.detail-figure--inset{ max-width:70%; }
+.detail-figure--inset.align-right{ margin-left:auto; }
+.detail-figure--inset.align-left{ margin-right:auto; }
+/* Unboxed figure — Krittin: "just put the preflight post flight and flight
+   by itself without box and border". No `.detail-figure-media` wrapper at
+   all, so the image is sized by its own aspect ratio instead of the fixed
+   220–440px carbon/ash box; nothing gets cropped either way, so `.is-chart`
+   isn't needed on images using this. */
+.detail-figure--plain img, .detail-figure--plain svg{ display:block; width:100%; height:auto; }
+
+/* Background-removed cutouts — TerraGator's finished rocket + ACS stills,
+   Navigator's finished rocket — floating on the page like the home/Projects
+   3D models do, not confined to a bordered card. Krittin: "attach them as
+   image of 3D model and space them out instead of being confined in block
+   must see the entire model not image cutoff". No background/border at all
+   here (unlike `.detail-media-inner`/`.detail-figure-media`); each image is
+   sized by its own aspect ratio and capped by height only, never force-
+   cropped to fill a box — a cutout with a corner cropped off would defeat
+   the point of cutting it out in the first place.
+
+   `align-items:stretch` (not the old `flex-end`) is what lets `.is-tall`
+   work below — Krittin: "put acs 2 under acs 1, and make rocket as tall as
+   acs 1 and 2 stacking on top of each other". */
+.cutout-row{
+  max-width:1200px; margin:56px auto 0; padding:0 40px;
+  display:flex; flex-wrap:wrap; align-items:stretch; justify-content:center;
+  gap:32px 48px;
+}
+.cutout{ margin:0; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.cutout img{ display:block; max-width:100%; max-height:360px; width:auto; height:auto; }
+.cutout figcaption{
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+}
+/* ACS 1 above ACS 2, one column — its combined height (two 360px-capped
+   images plus captions and this gap) is what `.is-tall` below stretches to
+   match; `.cutout-row`'s `align-items:stretch` can't do that on its own
+   since a plain `.cutout` sizes by its own content, not its siblings'. */
+.cutout-stack{ display:flex; flex-direction:column; gap:24px; }
+/* The rocket: `.cutout-row` already stretches this figure's height to match
+   the ACS stack (the taller of the two columns); `flex:1` on its own img is
+   what lets the img actually GROW into that extra height instead of
+   sitting at its own shorter natural size inside a now-taller box.
+   `min-height:0` is required for a flex child to shrink/grow past its
+   content size at all — without it the default `min-height:auto` wins and
+   the image just stays its intrinsic height, ignoring the stretch. */
+.cutout.is-tall img{ flex:1; min-height:0; max-height:none; width:auto; object-fit:contain; }
+/* Navigator's rocket — Krittin: "make rocket 2x bigger" (2x the default
+   360px cap). Own modifier rather than raising `.cutout img` itself, which
+   would also double TerraGator's stills. */
+.cutout.is-xl img{ max-height:720px; }
+
+/* CMG project's flywheel-speed comparison (thesis.html only) — two SVG line
+   charts js/cmg-scene.js draws live from the exported simulation CSVs, not
+   a chart library nothing else on the site uses. Own box, not a second
+   `.detail-media-inner` — that class carries the page's one
+   `view-transition-name`, which a second element can't repeat. Sized like
+   `.detail-media` (same max-width) so it reads as part of the same system
+   rather than a one-off widget. No border/background at all, same as
+   `.detail-media-inner--transparent` — Krittin: "no border around or
+   anything, just have the plot and animation by itself". */
+.cmg-charts{ max-width:1200px; margin:40px auto 0; padding:0 40px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.cmg-chart-box{ border:none; background:transparent; padding:0; }
+.cmg-chart-box svg{ display:block; width:100%; height:auto; }
+.cmg-chart-caption{
+  margin-top:10px; font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+}
+@media(max-width:900px){ .cmg-charts{ grid-template-columns:1fr; } }
 
 footer{
   position:relative; z-index:1;
@@ -1140,7 +1441,6 @@ footer{
    the stack. */
 @media (max-width: 1200px){
   .about-grid{ grid-template-columns:280px minmax(0,1fr) 180px; gap:32px; }
-  .about-photo{ height:400px; }
   .marquee-v{ height:400px; }
   .skill-tag{ font-size:13px; padding:9px 16px 9px 13px; gap:9px; }
   .skill-ico{ width:19px; height:19px; }
@@ -1172,7 +1472,9 @@ footer{
   .about .section-inner{ max-width:1200px; }
   .about-grid{ grid-template-columns:1fr; gap:40px; }
   .about-plate{ max-width:320px; }
-  .about-photo{ height:380px; }
+  /* Side by side is fine at desktop width; on a phone-width single column two
+     narrow lists would wrap every long course title onto 3-4 lines each. */
+  .about-edu-row{ flex-direction:column; gap:0; }
   /* A vertical marquee makes no sense once the columns stack — it goes back to
      the horizontal band, reusing the original keyframes. */
   .marquee-v{
@@ -1198,37 +1500,59 @@ footer{
   .carousel-track{ width:180px; height:230px; }
   .carousel-model{ height:120px; }
   .carousel-nav{ max-width:100%; }
-  /* No diorama on a phone: a fixed scatter needs width the viewport does not
-     have, and the Moon would take most of it. Everything goes static and
-     stacks in one column instead, the disc drops out entirely (see
-     .proj-moon below), and its three fallback stills rejoin this list in
-     plain document order along with the rockets and the CBF robot. */
+  /* The scene STAYS on a phone — it just gets a portrait box, and picks its
+     own stacked composition to suit (the Moon sits above Earth rather than
+     beside it; see LAYOUTS in js/system-scene.js). This is a change from the
+     old field, which hid its Moon canvas here and fell back to flat stills;
+     there are no stills any more, so hiding the canvas would leave the
+     section empty.
+
+     The index comes out of the corner and flows underneath instead. Pinned
+     over a 380px-wide canvas it would cover a third of the scene, and it is
+     the guaranteed-clickable list — it has to stay readable, and it carries
+     the full titles the scene's own labels abbreviate. */
   .proj-field{
-    position:static; min-height:0; display:flex; flex-direction:column;
-    align-items:center; gap:36px; padding-top:8px;
+    flex-direction:column; gap:18px; min-height:0;
   }
-  .proj-obj{ position:static; transform:none; }
-  .proj-obj-model{ max-width:78vw; }
-  .proj-obj-label{ max-width:78vw; }
-  /* The whole Moon box goes now, not just the canvas: it no longer holds any
-     .proj-obj children of its own (the CMG cubesat, Sky Crane and Lunar
-     Hopper are all real 3D positioned by moon-scene.js, which never mounts
-     here — see below), so an empty absolutely-positioned box left behind
-     would do nothing but take up dead space. index.html mounts the Moon scene
-     only when the canvas has a non-zero width, so hiding it here is also what
-     keeps a second WebGL context and its bake off a phone. Their three flat
-     fallback stills come back in the main stacked list instead (in document
-     order, alongside the rockets and the CBF robot) — the one layout where
-     they have to. */
-  .proj-moon{ display:none; }
-  .proj-obj--moon-fallback{ display:flex; }
-  /* Redundant here — this stacked column already is a plain clickable list
-     of every project — and there is no open corner to tuck it into once
-     everything is one flowed column instead of a scatter. */
-  .proj-index{ display:none; }
+  .proj-scene{ flex:0 0 auto; height:70vh; min-height:420px; }
+  /* The scene is a fixed 70vh box at this width, not the section's full
+     height, so the panel docks to ITS bottom edge as one full-width sheet —
+     there is no left/right split to make since it now spans the whole
+     canvas either way. Touch has no hover to open it with; see the tap
+     handling in js/system-scene.js. */
+  .proj-info{
+    left:16px; right:16px; top:auto; bottom:16px; width:auto; max-width:none;
+    max-height:55%;
+  }
+  .proj-info.dock-left, .proj-info.dock-right{
+    left:16px; right:16px; transform:translateY(12px);
+  }
+  .proj-info.dock-left.is-open, .proj-info.dock-right.is-open{ transform:translateY(0); }
+  .proj-index{
+    position:static; max-width:none; width:100%; gap:16.5px;
+  }
+  /* Research flows first, then Projects, in that DOM order — a small gap
+     above the second box is the only thing that still hints they're two
+     groups once the corners collapse into one stacked column. The desktop
+     corner's right-justify and status/year/title reorder are undone here —
+     they read as a mirrored counterpart to Research sitting in its own
+     corner, which stops meaning anything once both are one left-aligned
+     column; a stacked list wants every row starting from the same edge. */
+  .proj-index-projects{ margin-top:10px; align-items:flex-start; text-align:left; }
+  .proj-index-projects a{ flex-direction:row; }
+  .proj-index a{ font-size:33px; }
+  .proj-index .proj-status{ font-size:13px; }
+  .proj-program{ font-size:12px; }
   .projects .section-inner{ padding-left:20px; padding-right:20px; }
   .detail-body{ grid-template-columns:1fr; }
-  .section-inner, .detail-header, .detail-media, .detail-body, .back-link{ padding-left:20px; padding-right:20px; }
+  /* 70% of a column that's already narrow reads as cramped, not abstract. */
+  .detail-figure--inset{ max-width:100%; margin-left:0; margin-right:0; }
+  /* 3 (or more) columns of a lead gallery would be a strip of slivers on a
+     phone; stack them like everything else at this width instead. */
+  .detail-media-inner.detail-gallery{ grid-template-columns:1fr; }
+  .section-inner, .detail-header, .detail-media, .detail-body, .back-link, .cmg-charts, .cutout-row, .sim-secondary{ padding-left:20px; padding-right:20px; }
+  .cutout img{ max-height:220px; }
+  .cutout.is-xl img{ max-height:320px; }
   .topnav{ padding:0 20px; }
   /* Back to sitting at the right-hand end: centred, five links plus the
      wordmark do not fit across a phone and would overlap it. The gap is
@@ -1255,11 +1579,10 @@ footer{
   /* Selection still works, it just snaps to the chosen card instead of
      easing around to it. */
   .carousel-track{ transition:none; }
-  /* The project field arrives assembled: no staggered lighting animation.
-     initProjectField also short-circuits, so this is belt and braces for the
-     case where the class lands before the check. */
-  .proj-field.js-field .proj-obj{ opacity:1; }
-  .proj-field.js-field .proj-obj .proj-obj-model{ translate:none; }
+  /* The Projects scene arrives assembled: js/system-scene.js checks the same
+     preference and skips its fade-up entirely, so there is nothing left here
+     to switch off. The scene is static in every case — there was never any
+     ongoing motion in it to stop. */
   /* Both selectors, deliberately: `.marquee-v .marquee-track` outranks a bare
      `.marquee-track`, so the vertical marquee in About went on scrolling under
      a reduced-motion preference that had stopped the horizontal one. */
@@ -1268,7 +1591,7 @@ footer{
   .nebula{ transform:none; }
   .eyebrow .dot{ animation:none; }
   .hero-focus .dot{ animation:none; }
-  .hero-name .cursor{ animation:none; }
+  .hero-name .cursor, .proj-index .cursor{ animation:none; }
   .hero-left::before{ animation:none; height:58%; }
   .telemetry, .drag-hint{ animation:none; opacity:1; }
   .orbit-labels{ opacity:1; }

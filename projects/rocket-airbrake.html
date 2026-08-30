@@ -30,7 +30,6 @@
       <a href="../index.html#about">about</a>
       <a href="../index.html#experience">experience</a>
       <a href="../index.html#projects">projects</a>
-      <a href="../index.html#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -41,52 +40,140 @@
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>project — 02</div>
     <h1 class="detail-title">Project TerraGator</h1>
-    <div class="detail-sub">[Placeholder one-line summary of what this project is and the problem it solved.]</div>
+    <div class="detail-sub">Apogee Control System for Project TerraGator</div>
   </div>
 
+  <!-- Lead: the 14s flight/product video, by itself — Krittin: "add the
+       video 14seconds one to the top before all the images by itself and
+       make it start 1s after that project page loads". Source
+       (assets/video/Terragator.mov, 1920x1080, 85MB, H.264) was way too
+       heavy to ship as-is; assets/video/terragator.mp4 is a 1280x720
+       re-encode (CRF 27, +faststart) at ~7.5MB. Muted is required for the
+       delayed .play() below to be allowed at all — browsers block
+       autoplay-with-sound without a user gesture, muted or not; see the
+       script at the end of body. Keeps the page's one
+       `view-transition-name:proj-media` (on `.detail-media-inner`). -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner">
+      <video id="terragator-video" muted playsinline loop>
+        <source src="../assets/video/terragator.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+
+  <!-- Krittin: "remove background for Terra, ACS, ACS1 and attach them as
+       image of 3D model and space them out instead of being confined in
+       block must see the entire model not image cutoff" — background-removed
+       cutouts (acs.webp/acs-2.webp made from the white-background originals
+       via Higgsfield's remove_background, terragator.png already had no
+       background) floating directly on the page rather than cropped into a
+       bordered box.
+
+       Krittin: "put acs 2 under acs 1, and make rocket as tall as acs 1 and
+       2 stacking on top of each other" — ACS 2 moved under ACS 1
+       (.cutout-stack, its own column) and the rocket is `.is-tall` so it
+       stretches to match that stack's combined height (`align-items:stretch`
+       on .cutout-row + `flex:1` on its own img) instead of sitting at its
+       own shorter natural height like the other two. See .cutout-row in
+       style.css. -->
+  <div class="cutout-row">
+    <figure class="cutout is-tall">
+      <img src="../assets/images/projects/terragator.png" alt="Project TerraGator, finished rocket">
+      <figcaption>finished rocket</figcaption>
+    </figure>
+    <div class="cutout-stack">
+      <figure class="cutout">
+        <img src="../assets/images/projects/acs.webp" alt="Apogee Control System assembly, airbrake deployed, wiring visible">
+        <figcaption>ACS assembly</figcaption>
+      </figure>
+      <figure class="cutout">
+        <img src="../assets/images/projects/acs-2.webp" alt="Apogee Control System CAM-slot airbrake mechanism, close-up">
+        <figcaption>airbrake mechanism</figcaption>
+      </figure>
+    </div>
   </div>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">timeframe</div>
-        <div class="fact-value">[mon yyyy] – [mon yyyy]</div>
+        <div class="fact-value">Fall 2025 – Spring 2026</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">role</div>
-        <div class="fact-value">[Your role on the project]</div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">team</div>
-        <div class="fact-value">[Solo / team of N, org or club name]</div>
+        <div class="fact-value">Lead of Guidance Navigation and Control</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
+          <div class="tag">MATLAB</div>
+          <div class="tag">Simulink</div>
+          <div class="tag">C++</div>
+          <div class="tag">Fusion 360</div>
+          <div class="tag">SolidWorks</div>
+          <div class="tag">Ansys Mechanical</div>
         </div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/rocket-airbrake.pdf">↓ read the paper</a>
+        <div class="fact-label">results</div>
+        <div class="fact-value">3 successful flights within 20 ft of target apogee using the ACS; 5th place at the 2026 NASA USLI competition.</div>
       </div>
     </div>
 
+    <!-- Krittin gave this split by discipline rather than as overview/
+         approach/results prose, so it's kept that way — "mechanical" and
+         "electrical & software" instead of the usual three paragraphs. -->
     <div class="desc" data-reveal>
-      <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
-      <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
+      <h3>mechanical</h3>
+      <ul>
+        <li>Designed Apogee Control System airbrake mechanism on Fusion 360 and SolidWorks</li>
+        <li>Manufactured all parts on lathe, mill, CNC, and waterjet</li>
+        <li>Performed Finite Element Analysis on the structure (static load and modal analysis) to verify structural integrity during actuation</li>
+      </ul>
+
+      <h3>electrical &amp; software</h3>
+      <ul>
+        <li>Built inertial navigation system using IMU, barometer, and Teensy 4.1, coded entirely in C++</li>
+        <li>Sensor fusion using Kalman Filter for orientation and position</li>
+        <li>Finite state machine for state detection</li>
+        <li>Control airbrake actuation using PID controller</li>
+        <li>Tuned PID gains with a custom MATLAB + Simulink simulation</li>
+      </ul>
+
+      <!-- The 2 results plots — Krittin: "ACS 3 and ACS 4 will go to the
+           results". Real flight data, matches the "results" fact above (3
+           flights within 20 ft, ACS 4 shows the error settling at ~20 ft as
+           apogee is detected). -->
       <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <figure class="detail-figure detail-figure--inset align-left">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/acs-3.png" alt="Flight altitude vs. time, actual against commanded apogee"></div>
+        <figcaption>altitude vs. time — actual against commanded apogee</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--inset align-right">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/acs-4.png" alt="Predicted apogee error vs. time, converging as apogee is detected"></div>
+        <figcaption>predicted apogee error, converging as apogee is detected</figcaption>
+      </figure>
     </div>
   </div>
 
   <footer>krittin jindamai — mission log — 2026</footer>
+
+  <!-- Krittin: "make it start 1s after that project page loads" — muted is
+       what actually makes the delayed .play() call allowed at all; browsers
+       block programmatic playback with sound outside a user gesture
+       regardless of the autoplay attribute. .catch() swallows a rejected
+       play() rather than surfacing an unhandled-promise console error if a
+       browser still refuses it. -->
+  <script>
+    (function () {
+      var v = document.getElementById("terragator-video");
+      if (!v) return;
+      v.muted = true;
+      setTimeout(function () {
+        v.play().catch(function () {});
+      }, 1000);
+    })();
+  </script>
 
 </body>
 </html>

@@ -94,7 +94,6 @@
       <a href="#about">about</a>
       <a href="#experience">experience</a>
       <a href="#projects">projects</a>
-      <a href="#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -159,9 +158,10 @@
       </div>
 
       <div class="links-row">
-        <a class="btn-dark" href="assets/papers/resume.pdf"><span class="idx">01</span> resume ↓</a>
-        <a class="ghost-link" href="#" target="_blank" rel="noopener"><span class="idx">02</span> linkedin →</a>
-        <a class="ghost-link" href="#" target="_blank" rel="noopener"><span class="idx">03</span> github →</a>
+        <a class="btn-dark" href="assets/papers/resume.pdf" target="_blank" rel="noopener"><span class="idx">01</span> resume ↓</a>
+        <a class="ghost-link" href="https://www.linkedin.com/in/krittinjindamai/" target="_blank" rel="noopener"><span class="idx">02</span> linkedin →</a>
+        <a class="ghost-link" href="https://github.com/yim1305" target="_blank" rel="noopener"><span class="idx">03</span> github →</a>
+        <button type="button" class="ghost-link" id="email-copy" data-email="krittin.jindamai@ufl.edu"><span class="idx">04</span> <span id="email-copy-label">email →</span></button>
       </div>
     </div>
 
@@ -179,29 +179,65 @@
              underneath; Krittin had it removed, and the photo grew into
              exactly the height that freed up, so About's total is unchanged. -->
         <div class="about-plate" data-reveal>
-          <div class="about-photo">[ photo ]</div>
+          <div class="about-photo">
+            <img src="assets/images/krittin-portrait.jpg" alt="Krittin Jindamai standing beside Project TerraGator" />
+          </div>
         </div>
         <div class="about-text" data-reveal>
-          <p class="lead">[Placeholder lead line — one or two sentences on who Krittin is and what he focuses on.]</p>
-          <p>[Placeholder bio paragraph — background, current program/year, and area of interest within aerospace, e.g. guidance/navigation/controls, propulsion, or systems. To be replaced with real copy.]</p>
-          <p>[Placeholder second paragraph — interests outside coursework, what he's currently working toward.]</p>
+          <p class="lead">I’m Yim from Thailand, and I’m a fourth-year Aerospace Engineering student in the Honors Program at the University of Florida.</p>
+          <p>I grew up near the Geo-Informatics and Space Technology Development Agency (GISTDA) in Thailand, and I often visited their museum growing up. Those visits sparked my interest in space and eventually led me to become fascinated with satellites.</p>
+          <p>My current research interests are broadly focused on CubeSats and spacecraft systems, including areas such as attitude determination and control (ADCS), guidance, navigation, and control (GNC), formation flying, and nonlinear control. I have experience in nonlinear control research at NCR and spent two years as a Software and GNC Lead on the Swamp Launch rocket team. I am also currently working on my undergraduate honors thesis on Hybrid Control Moment Gyroscope (HCMG) momentum desaturation. I’m interested in exploring different areas of CubeSat research and learning more about the challenges involved in controlling and operating small spacecraft.</p>
 
-          <!-- Education lives here rather than in a section of its own. It
-               sits in the right column because the dossier plate opposite is
-               the taller of the two, so these rows cost About no height. -->
-          <div class="about-edu">
-            <div class="about-edu-label">education</div>
-            <div class="edu-row">
-              <span class="edu-inst">University of Florida</span>
-              <span class="edu-detail">Honors Aerospace Engineering · 2023 – 2027</span>
+          <!-- Education and Relevant Coursework, SIDE BY SIDE — Krittin:
+               "put relevant course work and education side by side,
+               education left courses right". Each still uses the same
+               .about-edu/.edu-row list shape (its own top hairline, its own
+               label) — .about-edu-row just lays the two of them out as a
+               row instead of a stack; no other CSS needed. -->
+          <div class="about-edu-row">
+            <!-- Education. It sits in the right column because the dossier
+                 plate opposite is the taller of the two, so these rows cost
+                 About no height. -->
+            <div class="about-edu">
+              <div class="about-edu-label">education</div>
+              <!-- Year on its OWN line now, not "programme · year" run
+                   together — Krittin: "for year at each institution start a
+                   new line instead of doing * then year". Just a second
+                   .edu-detail span; .edu-row already stacks whatever it's
+                   given. -->
+              <div class="edu-row">
+                <span class="edu-inst">University of Florida</span>
+                <span class="edu-detail">Honors Aerospace Engineering</span>
+                <span class="edu-detail">2023 – 2027</span>
+              </div>
+              <div class="edu-row">
+                <span class="edu-inst">United World College Costa Rica</span>
+                <span class="edu-detail">International Baccalaureate Programme</span>
+                <span class="edu-detail">2021 – 2023</span>
+              </div>
+              <div class="edu-row">
+                <span class="edu-inst">Suankularb Wittayalai School</span>
+                <span class="edu-detail">2017 – 2021</span>
+              </div>
             </div>
-            <div class="edu-row">
-              <span class="edu-inst">United World College Costa Rica</span>
-              <span class="edu-detail">International Baccalaureate Programme · 2021 – 2023</span>
-            </div>
-            <div class="edu-row">
-              <span class="edu-inst">Suankularb Wittayalai School</span>
-              <span class="edu-detail">2017 – 2021</span>
+            <div class="about-edu">
+              <div class="about-edu-label">relevant coursework</div>
+              <div class="edu-row">
+                <span class="edu-inst">Nonlinear Controls</span>
+                <span class="edu-detail">EML6350</span>
+              </div>
+              <div class="edu-row">
+                <span class="edu-inst">Astrodynamics</span>
+                <span class="edu-detail">EAS4510</span>
+              </div>
+              <div class="edu-row">
+                <span class="edu-inst">Control of Mechanical Engineering Systems</span>
+                <span class="edu-detail">EML4312</span>
+              </div>
+              <div class="edu-row">
+                <span class="edu-inst">Stability and Control of Aircraft</span>
+                <span class="edu-detail">EAS4400</span>
+              </div>
             </div>
           </div>
         </div>
@@ -254,6 +290,11 @@
            tinted so the starfield reads straight through them. The unfold uses
            grid-template-rows 0fr -> 1fr, which is the only way to transition to
            an auto height; browsers without it just snap open, which is fine. -->
+      <!-- No .exp-summary any more — Krittin: "remove one line summary of
+           work and make them all bullet points". .exp-head dropped from a
+           4-column grid to 3 (see style.css); the bullet lists below are
+           now each position's FULL set from the resume, not a 2-line
+           trim — removing the summary freed the room for that. -->
       <div class="exp-list">
         <div class="exp-row" data-reveal="left">
           <div class="exp-head">
@@ -262,37 +303,39 @@
               <div class="exp-role">Undergraduate Research Assistant</div>
               <div class="exp-org">Nonlinear Control Research Group (NCR)</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
               <span class="exp-tag">research</span>
-              <span class="exp-date">Fall 2025 – Present</span>
+              <span class="exp-date">Spring 2026 – Present</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — what the research focused on.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Investigate Control Barrier Functions (CBFs) for smooth waypoint tracking of nonholonomic robots near safety constraints.</li>
+              <li>Simulate multi-robot and drone systems in ROS2 and Gazebo to evaluate CBF-based safety control before deployment on physical robots.</li>
             </ul>
           </div>
         </div>
 
+        <!-- Krittin: "add 7th experience as Space System group and make it
+             second one after CBF" — same thesis work as thesis.html, from
+             the resume entry that wasn't in Experience at all before. -->
         <div class="exp-row" data-reveal="left">
           <div class="exp-head">
             <div class="exp-index">02</div>
             <div class="exp-role-block">
-              <div class="exp-role">Teaching Assistant</div>
-              <div class="exp-org">Mechanics of Materials Laboratory, University of Florida</div>
+              <div class="exp-role">Undergraduate Honors Thesis</div>
+              <div class="exp-org">Space Systems Group (SSG)</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
-              <span class="exp-tag">leadership</span>
-              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+              <span class="exp-tag">research</span>
+              <span class="exp-date">Summer 2026 – Present</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — course and responsibilities.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Investigate singularity escape and avoidance algorithms for Hybrid Control Moment Gyroscopes (HCMGs).</li>
+              <li>Develop a 12U CubeSat simulation in sun-synchronous orbit for rapid retargeting and precision nadir pointing under gravity-gradient, aerodynamic-drag, and J2 perturbations.</li>
+              <li>Evaluate Magnetorquer (MTQ)–based momentum dumping for HCMG desaturation.</li>
             </ul>
           </div>
         </div>
@@ -301,19 +344,18 @@
           <div class="exp-head">
             <div class="exp-index">03</div>
             <div class="exp-role-block">
-              <div class="exp-role">Mechanical and Testing Engineering Intern</div>
-              <div class="exp-org">Geo-Informatics and Space Technology Development Agency (GISTDA), Thailand</div>
+              <div class="exp-role">Teaching Assistant</div>
+              <div class="exp-org">Mechanics of Materials Laboratory, University of Florida</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
-              <span class="exp-tag">internship</span>
-              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+              <span class="exp-tag">leadership</span>
+              <span class="exp-date">Fall 2026 – Present</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — what the internship covered.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Lead two laboratory sections of 60+ students conducting experiments with dynamic data acquisition (DAQ), Wheatstone bridges, strain gauges, and Instron machines.</li>
+              <li>Hold office hours and assist students with laboratory procedures, course material, and technical report writing.</li>
             </ul>
           </div>
         </div>
@@ -322,40 +364,45 @@
           <div class="exp-head">
             <div class="exp-index">04</div>
             <div class="exp-role-block">
-              <div class="exp-role">Guidance, Navigation &amp; Controls Lead</div>
-              <div class="exp-org">Swamplaunch</div>
+              <div class="exp-role">Mechanical and Testing Engineering Intern</div>
+              <div class="exp-org">Geo-Informatics and Space Technology Development Agency (GISTDA), Thailand</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
-              <span class="exp-tag">leadership</span>
-              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+              <span class="exp-tag">internship</span>
+              <span class="exp-date">Summer 2025</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — scope of role and team.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Meshed and assembled the primary structure of Thailand's THEOS-3A using HyperMesh.</li>
+              <li>Performed free-free and fixed-base modal analyses to determine natural frequencies and mode shapes of the satellite structure.</li>
+              <li>Performed quasi-static load analyses under multiple load factors using MSC NASTRAN to evaluate structural integrity during launch and on-orbit disturbances.</li>
             </ul>
           </div>
         </div>
 
+        <!-- Krittin: "Swamplaunch full name is Swamp___ Rocketry Team" —
+             the middle word came through blanked; "Swamp Launch Rocketry
+             Team" is my best reconstruction (matches "Swamplaunch" split
+             into two words, and the resume's own "Swamp Launch Rocket
+             Team"). UNVERIFIED — confirm the exact wording. -->
         <div class="exp-row" data-reveal="left">
           <div class="exp-head">
             <div class="exp-index">05</div>
             <div class="exp-role-block">
-              <div class="exp-role">Payload Software Associate Lead</div>
-              <div class="exp-org">Swamplaunch</div>
+              <div class="exp-role">Guidance, Navigation &amp; Controls Lead</div>
+              <div class="exp-org">Swamp Launch Rocketry Team (Swamplaunch)</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
               <span class="exp-tag">leadership</span>
-              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+              <span class="exp-date">Fall 2025 – Spring 2026</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — scope of role and team.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Developed embedded C++ software for real-time trajectory prediction and active rocket altitude control using PID control.</li>
+              <li>Designed and manufactured a custom flight-computer PCB and CAM-slot airbrake mechanism using CNC machining, milling, and turning.</li>
+              <li>Implemented an Extended Kalman Filter to estimate vehicle position and orientation in real time.</li>
             </ul>
           </div>
         </div>
@@ -364,19 +411,41 @@
           <div class="exp-head">
             <div class="exp-index">06</div>
             <div class="exp-role-block">
-              <div class="exp-role">Undergraduate Research Assistant</div>
-              <div class="exp-org">King Mongkut's University of Technology North Bangkok</div>
+              <div class="exp-role">Payload Software Associate Lead</div>
+              <div class="exp-org">Swamp Launch Rocketry Team (Swamplaunch)</div>
             </div>
-            <div class="exp-summary">[One-line summary of the work.]</div>
             <div class="exp-meta">
-              <span class="exp-tag">research</span>
-              <span class="exp-date">[mon yyyy] – [mon yyyy]</span>
+              <span class="exp-tag">leadership</span>
+              <span class="exp-date">Fall 2024 – Spring 2025</span>
             </div>
           </div>
           <div class="exp-detail">
             <ul class="exp-highlights">
-              <li>[Placeholder highlight — what the research focused on.]</li>
-              <li>[Placeholder highlight — a specific contribution or result.]</li>
+              <li>Led a 15-member software sub-team to a 6th-place finish at the NASA 2025 Student Launch Competition.</li>
+              <li>Implemented a Kalman Filter to fuse IMU and barometer measurements for real-time rocket velocity estimation.</li>
+              <li>Developed a C++ program to collect and transmit rocket and landing-site data to a NASA transceiver over 2M radio.</li>
+              <li>Collaborated with electrical and mechanical teams to develop and test the rocket retention mechanism.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="exp-row" data-reveal="left">
+          <div class="exp-head">
+            <div class="exp-index">07</div>
+            <div class="exp-role-block">
+              <div class="exp-role">ADCS Research Assistant</div>
+              <div class="exp-org">King Mongkut's University of Technology North Bangkok, Thailand</div>
+            </div>
+            <div class="exp-meta">
+              <span class="exp-tag">research</span>
+              <span class="exp-date">Summer 2024</span>
+            </div>
+          </div>
+          <div class="exp-detail">
+            <ul class="exp-highlights">
+              <li>Researched and implemented the TRIAD method for satellite attitude determination using magnetometer and sun sensor measurements.</li>
+              <li>Developed a MATLAB simulation of B-Dot control detumbling for a 1U satellite in Low Earth Orbit utilizing three magnetic torquers.</li>
+              <li>Applied the fourth-order Runge–Kutta method to numerically solve nonlinear state-space equations of motion.</li>
             </ul>
           </div>
         </div>
@@ -500,164 +569,132 @@
       </div>
       -->
 
-      <!-- Project field — one fixed-scatter diorama, no cards. The rockets
-           and the CBF robot are placed at explicit x/y percentages of
-           .proj-field; the Moon (centred) and the three projects living
-           inside its scene (the CMG cubesat, Sky Crane, Lunar Hopper) are
-           positioned in real 3D by js/moon-scene.js instead, not CSS
-           percentages. Every flat-still object is an image the user
-           supplies; its box shows a labelled placeholder until the file
-           exists. See "Projects field" in CLAUDE.md for the placement
-           arithmetic and which dials to turn. -->
+      <!-- Project field — ONE fixed 3D scene, not a scatter of images.
+           Earth cropped by the bottom-left corner, the Moon fully visible on
+           the right, and all six projects placed where they belong in that
+           system: the CBF TurtleBot on a trail across Earth, the 12U CMG
+           cubesat on an orbit ring around it, the two rockets on outbound
+           and return arcs between the bodies, Sky Crane landed on the Moon
+           and the Lunar Hopper's arc off its south pole.
+
+           Nothing moves and the camera is fixed, so there is no render loop
+           at all — the scene draws on arrival and on resize and then costs
+           nothing. Every position lives in js/system-scene.js; there are no
+           --x/--y percentages any more, and no per-project images. See
+           "Projects field" in CLAUDE.md. -->
       <div class="proj-field" id="proj-field" data-reveal>
 
-        <!-- Small supplementary index. The scattered diorama is the primary
-             way to browse, but Krittin asked for "a small list on the side...
-             so can still click on the project" — the diorama alone asks a
-             viewer to hunt for six objects at very different visual weights,
-             and this guarantees every title is findable and clickable
-             regardless. Deliberately minimal: titles only, no art, tucked in
-             the corner rather than competing with the scatter. Hidden on the
-             stacked layout (see style.css) since that layout already IS a
-             plain list of everything. -->
-        <nav class="proj-index" aria-label="Projects index">
-          <span class="proj-index-eyebrow"><span class="dot"></span>index</span>
-          <a href="projects/rocket-airbrake.html">Project TerraGator</a>
-          <a href="projects/rocket-software.html">Project Navigator</a>
-          <a href="projects/thesis.html">Hybrid CMG Momentum Desaturation</a>
-          <a href="projects/ros-research.html">Non Holonomic CBF</a>
-          <a href="projects/controls-final-project.html">Sky Crane</a>
-          <a href="projects/senior-design-project.html">Lunar Hopper</a>
-        </nav>
+        <!-- The canvas runs TALLER than this section: Earth is drawn whole
+             and the part below the fold carries on behind Awards. See
+             .proj-scene's --scene-spill in style.css and the spill note in
+             js/system-scene.js's resize().
 
-        <!-- Real 3D Moon, in the hero globe's treatment: posterised bands, a
-             hairline at the mare boundary, hairline crater rims, hairline
-             limb, no lighting and no glow. It spins on its own and can be
-             dragged. Fully on screen (not clipped), bigger, and now centred
-             in the field rather than anchored to an edge — see .proj-moon in
-             style.css.
+             The label layer holds one plain-text label per project, placed
+             beside its object from that object's real 3D position. No box
+             and no leader — just text. Hovering a label, its row in the
+             index, or the 3D object itself lights all three. -->
+        <div class="proj-scene">
+          <canvas class="system-canvas" id="system-canvas"></canvas>
+          <div class="system-labels" id="system-labels"></div>
 
-             Three projects live inside this scene, none of them CSS-
-             positioned: the Hybrid CMG cubesat in a real low orbit
-             (buildCmgCubesat), the Sky Crane as a simple lander fixed to a
-             point on the surface so it turns with the Moon
-             (buildSkyCraneLander), and the Lunar Hopper as a parabolic hop
-             trajectory from the south pole rather than a model at all
-             (hopTrajectoryPoints) — all three positioned every frame from
-             their real 3D positions into #moon-labels. See js/moon-scene.js. -->
-        <div class="proj-moon">
-          <canvas class="moon-canvas" id="moon-canvas"></canvas>
-          <div class="moon-labels" id="moon-labels"></div>
+          <!-- Hover preview panel, positioned against THIS box (not
+               .proj-field) so it has a fixed height to dock against on the
+               stacked mobile layout too. Hovering a model, its label or its
+               index row opens this instead of navigating straight there —
+               js/system-scene.js fills it and picks which side to dock it on
+               (left/right of the hovered model, never on top of it) from the
+               model's own on-screen position. On a device with no hover it
+               opens on the first tap and its own link is what navigates, so
+               a second tap (or a tap on the link) is what leaves the page.
+               See .proj-info in style.css. -->
+          <div class="proj-info" id="proj-info">
+            <div class="proj-info-media"><img class="proj-info-img" alt="" /></div>
+            <div class="proj-info-title"></div>
+            <!-- Krittin: "just put the title from each page for the
+                 description then put click for more information" — until a
+                 project has a real one-line summary, js/system-scene.js
+                 fills this with that page's own title/subtitle instead of a
+                 bracket placeholder, and the link below says exactly that
+                 rather than "view project". -->
+            <div class="proj-info-desc"></div>
+            <a class="proj-info-link">click for more information</a>
+          </div>
         </div>
 
-        <!-- Mobile/reduced-motion fallbacks only, for the three Moon-scene
-             projects above. The Moon canvas never mounts in the stacked
-             layout, so these plain stills are the only place those projects
-             would otherwise vanish entirely — hidden everywhere else. -->
-        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:170px; --ar:1"
-           href="projects/thesis.html">
-          <span class="proj-obj-model">
-            <img class="proj-art" src="assets/images/projects/hybrid-cmg.png" alt="">
-            <span class="proj-ph">[ still — hybrid-cmg ]</span>
-          </span>
-          <span class="proj-obj-label">Hybrid CMG Momentum Desaturation</span>
-        </a>
+        <!-- Supplementary index. The scene is the primary way to browse, but
+             Krittin asked for "a small list on the side... so can still click
+             on the project" — six objects at very different visual weights
+             ask a viewer to hunt, and this guarantees every title is findable
+             and clickable regardless. It also carries the projects' FULL
+             titles, which the scene's own labels abbreviate.
 
-        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:190px; --ar:1.15"
-           href="projects/controls-final-project.html">
-          <span class="proj-obj-model">
-            <img class="proj-art" src="assets/images/projects/sky-crane.png" alt="">
-            <span class="proj-ph">[ still — sky-crane ]</span>
-          </span>
-          <span class="proj-obj-label">Sky Crane</span>
-        </a>
+             Six SEPARATE lines rather than a bordered box, and larger again —
+             Krittin: "redesign index, make them separate and text larger more
+             visible", then "make them bigger than they are now (i want them
+             top left)". It sits in the TOP-LEFT corner of the field, directly
+             under the section eyebrow, and the 3D composition was rerouted to
+             leave that corner empty rather than the list being fitted around
+             the composition — see .proj-index in style.css and
+             OUTBOUND_CONTROL in js/system-scene.js.
 
-        <a class="proj-obj proj-obj--moon-fallback" style="--x:44%; --y:9%; --w:180px; --ar:1.05"
-           href="projects/senior-design-project.html">
-          <span class="proj-obj-model">
-            <img class="proj-art" src="assets/images/projects/lunar-hopper.png" alt="">
-            <span class="proj-ph">[ still — lunar-hopper ]</span>
-          </span>
-          <span class="proj-obj-label">Lunar Hopper <span class="proj-status">in progress</span></span>
-        </a>
+             No heading above it: "dont put 'index' just put the project
+             names". Hovering a row lights its 3D model (and vice versa);
+             js/system-scene.js finds each row by href. On the stacked layout
+             it drops out of the corner and flows under the canvas instead
+             (see style.css). -->
+        <!-- ORDERED BY YEAR, most recent first, with Lunar Hopper pinned to
+             the end regardless — Krittin: "reorder the projects by year and
+             add the year each project i did as well CBF, CMG, Terra = 2026,
+             Navigator, Skycrane = 2025, Lunar hopper is in progress (put it
+             last)". Within a year the order is his.
 
-        <!-- In space. x is the model's horizontal centre, y its top edge,
-             both percentages of .proj-field. Both stand upright, side by side
-             on the right.
+             The title and the year are SEPARATE spans because the typing
+             animation types into .proj-title only and reveals .proj-year
+             after — see initIndexTyping() in js/main.js. Putting the year in
+             the link's bare text would make it part of what gets typed.
 
-             --w came down 30% from the 2x pass (430/390 → 300/275) — Krittin's
-             point: spacing these off their BOX edges was wrong to begin with,
-             because the real rocket in each file is a thin sliver in a mostly
-             transparent frame (checked: terragator's visible pixels are only
-             ~92px wide inside a 537px-wide canvas, navigator's ~116px — both
-             roughly centred). So the boxes can sit much closer together, even
-             overlap, without the actual rocket art ever touching — --x moved
-             from 56/84 to 66/78, deliberately closer than the boxes'
-             half-widths would suggest is "safe," because box-safe was never
-             the real constraint.
+             This list's order is independent of the PROJECTS array in
+             js/system-scene.js: rows are matched to 3D objects by href, not
+             by position, so reordering here needs no change there.
 
-             --y stays deliberately unequal so the BASES land level (--y is a
-             TOP edge, not a centre — see the same reasoning as every earlier
-             round), re-solved for the new, smaller heights. Spacing and sizes
-             are settled — --x is the only thing still moving, in the same
-             1.75-point step each time: 66/78 → 73/85 → 74.75/86.75 →
-             78.25/90.25 (the last step applied twice more, per request), same
-             gap preserved throughout. -->
-        <a class="proj-obj" style="--x:78.25%; --y:6%; --w:300px; --ar:.67"
-           href="projects/rocket-airbrake.html">
-          <span class="proj-obj-model">
-            <img class="proj-art" src="assets/images/projects/terragator.png" alt="">
-            <span class="proj-ph">[ still — terragator ]</span>
-          </span>
-          <span class="proj-obj-label">Project TerraGator</span>
-        </a>
-
-        <a class="proj-obj" style="--x:90.25%; --y:10%; --w:275px; --ar:.67"
-           href="projects/rocket-software.html">
-          <span class="proj-obj-model">
-            <img class="proj-art" src="assets/images/projects/navigator.png" alt="">
-            <span class="proj-ph">[ still — navigator ]</span>
-          </span>
-          <span class="proj-obj-label">Project Navigator</span>
-        </a>
-
-        <!-- The one object with ground under it: a perspective floor with the
-             tracked line drawn on it, the robot still sitting on top. The floor
-             is built here rather than being part of the supplied image so the
-             hairlines match every other rule on the site. -->
-        <a class="proj-obj proj-obj--ground" style="--x:15%; --y:64%; --w:360px; --ar:1.875"
-           href="projects/ros-research.html">
-          <span class="proj-obj-model">
-            <svg class="ground-plane" viewBox="0 0 300 160" aria-hidden="true" focusable="false">
-              <defs>
-                <linearGradient id="cbf-fade" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset=".18" stop-color="#000"/>
-                  <stop offset=".46" stop-color="#fff"/>
-                </linearGradient>
-                <mask id="cbf-mask"><rect width="300" height="160" fill="url(#cbf-fade)"/></mask>
-              </defs>
-              <g mask="url(#cbf-mask)">
-                <g fill="none" stroke="#3d3a39" stroke-width=".6">
-                  <path d="M60 40-20 155M90 40 36.7 155M120 40 93.3 155M150 40v115M180 40l26.7 115M210 40l53.3 115M240 40l80 115"/>
-                  <path d="M60 40h180M50.3 54h199.4M37.7 72h224.6M21 96h258M1.6 124h296.8M-20 155h340"/>
-                </g>
-                <path d="M70 150c50-30 20-70 80-88 56-17 76-6 95-28" fill="none"
-                      stroke="#ee6018" stroke-width="1.4" stroke-dasharray="4 4"/>
-              </g>
-            </svg>
-            <img class="proj-art" src="assets/images/projects/nonholonomic-cbf.png" alt="">
-            <span class="proj-ph">[ still — nonholonomic-cbf ]</span>
-          </span>
-          <span class="proj-obj-label">Non Holonomic Control Barrier Function</span>
-        </a>
+             SPLIT INTO TWO NAVS — Krittin: "split up research and projects,
+             put research top left ... put all the projects bottom right".
+             Both keep the shared .proj-index class (only positioning differs,
+             via .proj-index-research/.proj-index-projects in style.css), so
+             initIndexTyping() in js/main.js and system-scene.js's href
+             matching still see one continuous list across both boxes — see
+             the class comment in style.css before changing either. -->
+        <!-- Krittin: "put USP and thesis (brackets) under the index title as
+             well I want them to know" — same program each project's detail
+             page already tags (.detail-tags) and the hover panel's desc
+             already parenthesises, now visible in the index too without
+             opening either. Spelled out in full now, not abbreviated —
+             Krittin: "change (USP and thesis)... to Univer[sity Scholars]
+             Program and Undergra[duate] Hono[rs] Thesis". .proj-program
+             forces onto its own line under the title/year/status row via
+             flex-wrap — see style.css. -->
+        <nav class="proj-index proj-index-research" aria-label="Research">
+          <a href="projects/ros-research.html"><span class="proj-title">Non Holonomic CBF</span><span class="proj-year">2026</span><span class="proj-status">in progress</span><span class="proj-program">(university scholars program)</span></a>
+          <a href="projects/thesis.html"><span class="proj-title">Hybrid CMG Momentum Desaturation</span><span class="proj-year">2026</span><span class="proj-status">in progress</span><span class="proj-program">(undergraduate honors thesis)</span></a>
+        </nav>
+        <nav class="proj-index proj-index-projects" aria-label="Projects">
+          <a href="projects/rocket-airbrake.html"><span class="proj-title">Project TerraGator</span><span class="proj-year">2026</span></a>
+          <a href="projects/rocket-software.html"><span class="proj-title">Project Navigator</span><span class="proj-year">2025</span></a>
+          <a href="projects/controls-final-project.html"><span class="proj-title">Sky Crane</span><span class="proj-year">2025</span></a>
+          <a href="projects/senior-design-project.html"><span class="proj-title">Lunar Hopper</span><span class="proj-year">2026</span><span class="proj-status">in progress</span></a>
+        </nav>
       </div>
     </div>
   </section>
 
-  <!-- Last section, and outside .descent — the globe has long gone by here. -->
+  <!-- Last section, and outside .descent — the globe has long gone by here.
+       Krittin: "remove the satellite button, the index at the top and the
+       section label" — no more hero cubesat, nav link or eyebrow pointing
+       here, but the section itself and its cards stay (he was explicit:
+       "dont fix the page length just leave that page"), still reachable by
+       scrolling and still what the Projects globe's spill runs behind. -->
   <section class="awards" id="awards">
     <div class="section-inner">
-      <div class="eyebrow" data-reveal><span class="dot"></span>04 — awards &amp; certificates</div>
       <div class="awards-grid">
         <div class="award-card" data-reveal>
           <div class="award-media">[ certificate image ]</div>
@@ -683,18 +720,41 @@
 
   <script type="module">
     import { initOrbitScene } from "./js/orbit-scene.js";
-    import { initMoonScene } from "./js/moon-scene.js";
+    import { initSystemScene } from "./js/system-scene.js";
 
-    // The Moon renders only while the Projects section is on screen — it
-    // installs its own IntersectionObserver — so mounting it here costs a bake
-    // and nothing else until you scroll to it. Guarded because the stacked
-    // layout drops the canvas entirely.
-    // clientWidth rather than a duplicated breakpoint: the stacked layout hides
-    // the canvas in CSS, and a zero-size canvas is exactly the case that must
-    // not get a WebGL context and a bake.
-    const moonCanvas = document.getElementById("moon-canvas");
-    if (moonCanvas && moonCanvas.clientWidth > 0) {
-      initMoonScene({ canvas: moonCanvas, labelLayer: document.getElementById("moon-labels") });
+    // The Projects scene is mounted LAZILY, on approach, rather than at load.
+    // Creating the WebGL context and running its two equirectangular surface
+    // bakes is the only expensive thing it ever does — after that it renders
+    // a handful of frames and stops, because nothing in it moves — and there
+    // is no reason to pay that cost while the hero is still on screen and
+    // already running its own scene.
+    //
+    // Unlike the old Moon scene this mounts at every viewport: the stacked
+    // layout keeps the canvas now (there are no flat fallback stills any
+    // more), just at a taller portrait framing the scene picks for itself.
+    const systemCanvas = document.getElementById("system-canvas");
+    if (systemCanvas) {
+      const mountSystem = () =>
+        initSystemScene({
+          canvas: systemCanvas,
+          labelLayer: document.getElementById("system-labels"),
+          infoPanel: document.getElementById("proj-info"),
+        });
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (!e.isIntersecting) return;
+              io.disconnect();
+              mountSystem();
+            });
+          },
+          { rootMargin: "300px" }
+        );
+        io.observe(systemCanvas);
+      } else {
+        mountSystem();
+      }
     }
 
     // Looked up once. onTelemetry fires ~8 times a second, and re-querying the
@@ -726,6 +786,51 @@
         telEls.count.textContent = t.sats.length;
       },
     });
+  </script>
+
+  <!-- Krittin: "just make it copied to their clipboard and say copied to
+       clipboard" — no mailto: link, so it works even with no mail client
+       configured. Falls back to a hidden-textarea + execCommand copy on
+       browsers/contexts without the async Clipboard API (e.g. non-HTTPS). -->
+  <script>
+    (function () {
+      var btn = document.getElementById("email-copy");
+      if (!btn) return;
+      var label = document.getElementById("email-copy-label");
+      var email = btn.dataset.email;
+      var resetTimer = null;
+
+      function showCopied() {
+        clearTimeout(resetTimer);
+        label.textContent = "copied to clipboard";
+        resetTimer = setTimeout(function () {
+          label.textContent = "email →";
+        }, 2000);
+      }
+
+      btn.addEventListener("click", function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(email).then(showCopied, function () {
+            fallbackCopy(email);
+            showCopied();
+          });
+        } else {
+          fallbackCopy(email);
+          showCopied();
+        }
+      });
+
+      function fallbackCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    })();
   </script>
 </body>
 </html>

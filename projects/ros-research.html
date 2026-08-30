@@ -30,7 +30,6 @@
       <a href="../index.html#about">about</a>
       <a href="../index.html#experience">experience</a>
       <a href="../index.html#projects">projects</a>
-      <a href="../index.html#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -39,50 +38,68 @@
   <a class="back-link" href="../index.html#projects">← back to projects &amp; papers</a>
 
   <div class="detail-header">
-    <div class="eyebrow"><span class="dot"></span>project — 04</div>
+    <div class="eyebrow"><span class="dot"></span>research — 01</div>
     <h1 class="detail-title">Non Holonomic Control Barrier Function</h1>
-    <div class="detail-sub">[Placeholder one-line summary of what this project is and the problem it solved.]</div>
+    <div class="detail-sub">Control Barrier Functions for Non Holonomic Robots Way Point Control Near Safe Set Barriers</div>
+    <div class="detail-tags"><span class="tag">university scholars program</span></div>
+    <div class="detail-cta">
+      <a class="paper-btn" href="../assets/papers/ros-research.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      <!-- Krittin: "Add github link to code" — no repo URL yet, so this
+           stays href="#" like the hero's not-yet-provided links until he
+           gives me one. -->
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
+    </div>
   </div>
 
+  <!-- One lead image, the other scattered into .desc below instead of a
+       side-by-side pair — Krittin: "images dont need to all be side by side
+       ... make them different for each project". Both real now: the Gazebo
+       workspace (safe-set boundary + robot) as the lead, the path plot
+       further down in .desc. -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner">
+      <img src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center">
+    </div>
   </div>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
-        <div class="fact-label">timeframe</div>
-        <div class="fact-value">[mon yyyy] – [mon yyyy]</div>
+        <div class="fact-label">PI</div>
+        <div class="fact-value">Dr. Rushikesh Kamalapurkar</div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">role</div>
-        <div class="fact-value">[Your role on the project]</div>
+        <div class="fact-label">department</div>
+        <div class="fact-value">Mechanical and Aerospace Engineering, University of Florida</div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">team</div>
-        <div class="fact-value">[Solo / team of N, org or club name]</div>
+        <div class="fact-label">duration</div>
+        <div class="fact-value">Spring 2026 – present</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
+          <div class="tag">Python</div>
+          <div class="tag">ROS2</div>
+          <div class="tag">Gazebo Harmonic</div>
         </div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/ros-research.pdf">↓ read the paper</a>
       </div>
     </div>
 
     <div class="desc" data-reveal>
-      <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
-      <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
-      <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <h3>focus</h3>
+      <p>Conventional distance-based Control Barrier Functions (CBFs) may be overly conservative for nonholonomic robots because they primarily consider positional safety without fully accounting for the robot’s heading and angular dynamics. This limitation becomes particularly significant during tight turns, where the robot must turn before it can follow the desired safe direction. This research investigates incorporating the robot’s heading and angular motion into the CBF formulation to enable tighter and safer maneuvering while maintaining smooth and accurate trajectory tracking.</p>
+
+      <h3>my responsibility</h3>
+      <ul>
+        <li>Simulate waypoint tracking controller and test the proposed idea on ROS2 and Gazebo system</li>
+        <li>Write the paper and present at Spring 2027 Symposium</li>
+      </ul>
+
+      <figure class="detail-figure">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/cbf-2.png" alt="Top-down trajectory plot — robot path spiraling into the waypoint, heading vector marked in red"></div>
+        <figcaption>waypoint approach — heading-aware trajectory</figcaption>
+      </figure>
     </div>
   </div>
 

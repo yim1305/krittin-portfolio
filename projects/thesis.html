@@ -12,6 +12,17 @@
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
   <script src="../js/main.js"></script>
+
+  <!-- Import map for js/cmg-scene.js's "three" specifier — same CDN build
+       index.html's two scenes use, see the note there. Only this one detail
+       page needs it. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
 </head>
 <body>
 
@@ -30,7 +41,6 @@
       <a href="../index.html#about">about</a>
       <a href="../index.html#experience">experience</a>
       <a href="../index.html#projects">projects</a>
-      <a href="../index.html#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -39,54 +49,115 @@
   <a class="back-link" href="../index.html#projects">← back to projects &amp; papers</a>
 
   <div class="detail-header">
-    <div class="eyebrow"><span class="dot"></span>project — 03</div>
+    <div class="eyebrow"><span class="dot"></span>research — 02</div>
     <h1 class="detail-title">Hybrid CMG Momentum Desaturation</h1>
     <div class="detail-sub">Hybrid Control Moment Gyroscope Angular Momentum Desaturation Using Magnetorquers for CubeSats in Low Earth Orbit</div>
+    <div class="detail-tags"><span class="tag">undergraduate honors thesis</span></div>
+    <div class="detail-cta">
+      <a class="paper-btn" href="../assets/papers/thesis.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      <!-- Krittin: "Add github link to code" — no repo URL yet, so this
+           stays href="#" like the hero's not-yet-provided links until he
+           gives me one. -->
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
+    </div>
   </div>
 
+  <!-- Lead is the real HCMG simulation result (js/cmg-scene.js): the actual
+       body-attitude + orbit-position history from a MATLAB run (Main.m /
+       web_export.m in the thesis repo), exported to assets/data/cmg-sim.csv
+       and played back as a looping 3D animation of the bus reorienting to
+       track nadir, with labelled body axes (X_B/Y_B/Z_B) and a live nadir
+       arrow and a live X/Y/Z position + time readout, same HUD idea as the
+       reference animate_satellite.m/py. Not a
+       placeholder and not a synthetic mechanism demo — real simulation
+       output, so if Krittin later gets an actual screen-recorded video for
+       this project, that would replace this block rather than sit alongside
+       it (the page's one `view-transition-name:proj-media` lives on
+       `.detail-media-inner`, whichever asset occupies it). Transparent
+       background (`detail-media-inner--transparent`) so the nebula backdrop
+       shows through rather than a boxed dark panel. The one remaining
+       `.desc` figure below is still a placeholder — image 2/3 were removed
+       (Krittin: "remove image 2 and image 3 placeholder"), not just hidden. -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner detail-media-inner--transparent">
+      <canvas id="cmg-canvas"></canvas>
+      <div class="cmg-hud" id="cmg-hud"></div>
+    </div>
+  </div>
+
+  <!-- Flywheel-speed comparison, MTQ desaturation off vs on — live SVG line
+       charts (js/cmg-scene.js's buildChart()) reading the same run's
+       exported CSVs directly, drawing themselves in step with the 3D
+       animation above (one shared clock — see the file header). Not a
+       chart library the rest of the site has no other use for. Off:
+       unbounded growth over the 15-orbit run. On: bounded by the
+       magnetorquer desaturation loop. -->
+  <div class="cmg-charts">
+    <div class="cmg-chart-box">
+      <div id="cmg-chart-off"></div>
+      <div class="cmg-chart-caption">flywheel speed — MTQ desaturation off</div>
+    </div>
+    <div class="cmg-chart-box">
+      <div id="cmg-chart-on"></div>
+      <div class="cmg-chart-caption">flywheel speed — MTQ desaturation on</div>
+    </div>
   </div>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
-        <div class="fact-label">timeframe</div>
-        <div class="fact-value">[mon yyyy] – [mon yyyy]</div>
+        <div class="fact-label">PI</div>
+        <div class="fact-value">Dr. Norman G. Fitz-Coy</div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">role</div>
-        <div class="fact-value">[Your role on the project]</div>
+        <div class="fact-label">department</div>
+        <div class="fact-value">Mechanical and Aerospace Engineering, University of Florida</div>
       </div>
       <div class="fact-block">
-        <div class="fact-label">team</div>
-        <div class="fact-value">[Solo / team of N, org or club name]</div>
+        <div class="fact-label">duration</div>
+        <div class="fact-value">Summer 2026 – present</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
+          <div class="tag">MATLAB</div>
+          <div class="tag">Python</div>
         </div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/thesis.pdf">↓ read the paper</a>
       </div>
     </div>
 
     <div class="desc" data-reveal>
-      <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
-      <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
-      <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <h3>focus</h3>
+      <p>A Hybrid Control Moment Gyroscope (HCMG) combines the high-torque slewing capability of a Control Moment Gyroscope (CMG) with the precise pointing capability of a reaction wheel, making it well suited for CubeSats with limited space and actuator resources. However, external disturbances in low Earth orbit continuously introduce angular momentum into the spacecraft, which can accumulate and eventually saturate the HCMG, limiting its ability to control the spacecraft. This research investigates the use of magnetorquers (MTQs) to actively dump accumulated momentum while maintaining effective attitude control without interfering with the HCMG steering algorithm.</p>
+
+      <figure class="detail-figure detail-figure--inset align-left">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/cmg-pyramid-configuration.png" alt="Four-CMG pyramid mounting, each wheel's spin, gimbal and output-torque axes labeled"></div>
+        <figcaption>four-CMG pyramid array — spin, gimbal and torque axes</figcaption>
+      </figure>
+
+      <h3>my responsibility</h3>
+      <ul>
+        <li>Simulate nadir pointing satellite under disturbances in space while constantly escaping singularity configurations and dumping excess angular momentum</li>
+      </ul>
     </div>
   </div>
 
   <footer>krittin jindamai — mission log — 2026</footer>
+
+  <script type="module">
+    import { initCmgScene } from "../js/cmg-scene.js";
+    const canvas = document.getElementById("cmg-canvas");
+    if (canvas) {
+      initCmgScene({
+        canvas,
+        dataUrl: "../assets/data/cmg-sim.csv",
+        offDataUrl: "../assets/data/cmg-sim-mtq-off.csv",
+        chartOnEl: document.getElementById("cmg-chart-on"),
+        chartOffEl: document.getElementById("cmg-chart-off"),
+        hudEl: document.getElementById("cmg-hud"),
+      });
+    }
+  </script>
 
 </body>
 </html>

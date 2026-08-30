@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__TITLE__ — Krittin Jindamai</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- In <head> and render-blocking, deliberately — see index.html. -->
+  <script src="../js/main.js"></script>
+</head>
+<body>
+
+  <div class="nebula" id="nebula"></div>
+
+  <div class="stars" id="stars">
+      <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
+      <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
+      <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
+    </div>
+
+  <nav class="topnav">
+    <div class="wordmark">krittin jindamai</div>
+    <div class="navlinks">
+      <a href="../index.html#home">home</a>
+      <a href="../index.html#about">about</a>
+      <a href="../index.html#experience">experience</a>
+      <a href="../index.html#projects">projects</a>
+      <span class="nav-indicator" id="nav-indicator"></span>
+    </div>
+    <div class="scroll-progress" id="scroll-progress"></div>
+  </nav>
+
+  <a class="back-link" href="../index.html#projects">← back to projects &amp; papers</a>
+
+  <!-- RESEARCH page — distinct from the build/design projects' _template.html.
+       Krittin: "for each project page from now on research and project will
+       be different". Fields are PI/department/duration/focus/responsibility
+       instead of timeframe/role/team/tools, because a lab research entry
+       doesn't have those the way a build project does. Currently only CBF
+       (ros-research.html) and CMG (thesis.html) are research; duplicate THIS
+       file for any future one, _template.html for anything else. -->
+  <div class="detail-header">
+    <div class="eyebrow"><span class="dot"></span>research — __NUM__</div>
+    <h1 class="detail-title">__TITLE__</h1>
+    <div class="detail-sub">[Full paper/project title, if different from the h1 above.]</div>
+    <!-- Only for an undergraduate thesis — delete this row entirely on a
+         page that isn't one (see thesis.html vs. ros-research.html). -->
+    <div class="detail-tags"><span class="tag">undergraduate honors thesis</span></div>
+    <!-- Visible call-to-action row, not buried in the facts sidebar —
+         Krittin: "add button somewhere make it visible so they can access
+         the paper", same for the code link. Point the second at the real
+         repo once one exists; leave href="#" (matches how the hero's
+         not-yet-provided links behave) until then. -->
+    <div class="detail-cta">
+      <a class="paper-btn" href="../assets/papers/__SLUG__.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
+    </div>
+  </div>
+
+  <!-- The one LEAD shot — whichever image or video is most representative —
+       stays here and keeps the page's only `view-transition-name:proj-media`.
+       Everything else goes inside .desc below, scattered between paragraphs
+       instead of gathered into a gallery; see the .detail-figure note in
+       style.css. Swap for <img src="…" alt="…"> or <video …> once real files
+       exist — sizing is already handled. -->
+  <div class="detail-media">
+    <div class="detail-media-inner">[ lead image / video ]</div>
+  </div>
+
+  <div class="detail-body">
+    <div class="facts" data-reveal>
+      <div class="fact-block">
+        <div class="fact-label">PI</div>
+        <div class="fact-value">[Advisor's name]</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">department</div>
+        <div class="fact-value">[Department, university]</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">duration</div>
+        <div class="fact-value">[mon yyyy] – [present / mon yyyy]</div>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">tools &amp; methods</div>
+        <div class="tag-row">
+          <div class="tag">[Tool]</div>
+          <div class="tag">[Tool]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc" data-reveal>
+      <h3>focus</h3>
+      <p>[Placeholder paragraph — the research question and why it's worth asking.]</p>
+
+      <!-- One extra image, placed where it makes sense for THIS project — add
+           `detail-figure--inset align-left` or `align-right` for a
+           reduced-width figure instead of full column width; see style.css.
+           Duplicate this block per remaining image/video. -->
+      <figure class="detail-figure">
+        <div class="detail-figure-media">[ image ]</div>
+        <figcaption>[caption]</figcaption>
+      </figure>
+
+      <h3>my responsibility</h3>
+      <ul>
+        <li>[What you specifically did.]</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>krittin jindamai — mission log — 2026</footer>
+
+</body>
+</html>

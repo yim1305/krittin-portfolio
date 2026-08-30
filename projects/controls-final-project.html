@@ -30,7 +30,6 @@
       <a href="../index.html#about">about</a>
       <a href="../index.html#experience">experience</a>
       <a href="../index.html#projects">projects</a>
-      <a href="../index.html#awards">awards</a>
       <span class="nav-indicator" id="nav-indicator"></span>
     </div>
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -41,48 +40,104 @@
   <div class="detail-header">
     <div class="eyebrow"><span class="dot"></span>project — 05</div>
     <h1 class="detail-title">Sky Crane</h1>
-    <div class="detail-sub">[Placeholder one-line summary of what this project is and the problem it solved.]</div>
+    <div class="detail-sub">Controller design and simulation for a Mars-landing sky crane — PID, frequency-domain loop-shaping, and full-state feedback via pole placement, checked against each other on linear and nonlinear models.</div>
   </div>
 
+  <!-- Krittin: "add the 2 simulink models at the top dont add them in the
+       same box have 2 separate box and make the placement abstract" — the
+       linear model (linsim.slx) keeps the page's one .detail-media-inner
+       (its view-transition-name); the nonlinear validation model
+       (nonlinsim.slx) is a second, narrower .detail-figure-media box pushed
+       to one side in .sim-secondary below, rather than a mirrored 2-up
+       grid. See that class in style.css. -->
   <div class="detail-media">
-    <div class="detail-media-inner">[ project video / image gallery — replace with an &lt;img&gt; or &lt;video&gt; ]</div>
+    <div class="detail-media-inner">
+      <img src="../assets/images/projects/crane-linear-simulink.png" alt="Linear Simulink model — PID/loop-shaping/pole-placement controller driving the linearized state-space plant with thrust, roll and pitch disturbances">
+    </div>
+  </div>
+
+  <div class="sim-secondary">
+    <figure class="detail-figure detail-figure--inset align-left">
+      <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/crane-nonlinear-simulink.png" alt="Nonlinear Simulink model — the same controllers driving the full nonlinear equations of motion for validation"></div>
+      <figcaption>nonlinear model — same controllers validated on the full dynamics</figcaption>
+    </figure>
   </div>
 
   <div class="detail-body">
     <div class="facts" data-reveal>
       <div class="fact-block">
         <div class="fact-label">timeframe</div>
-        <div class="fact-value">[mon yyyy] – [mon yyyy]</div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">role</div>
-        <div class="fact-value">[Your role on the project]</div>
-      </div>
-      <div class="fact-block">
-        <div class="fact-label">team</div>
-        <div class="fact-value">[Solo / team of N, org or club name]</div>
+        <div class="fact-value">Spring 2026</div>
       </div>
       <div class="fact-block">
         <div class="fact-label">tools &amp; methods</div>
         <div class="tag-row">
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
-          <div class="tag">[Tool]</div>
+          <div class="tag">MATLAB</div>
+          <div class="tag">Simulink</div>
+          <div class="tag">Control System Designer</div>
         </div>
       </div>
       <div class="fact-block">
+        <div class="fact-label">results</div>
+        <div class="fact-value">PID controller met the 10 m step-response spec (0.36 s rise time, 0% overshoot); loop-shaping compensator hit a 25.4 dB gain margin and 20.2° phase margin; both validated in the full nonlinear simulation under thrust, roll and pitch disturbances.</div>
+      </div>
+      <div class="fact-block">
         <div class="fact-label">paper</div>
-        <a class="paper-btn" href="../assets/papers/controls-final-project.pdf">↓ read the paper</a>
+        <a class="paper-btn" href="../assets/papers/controls-final-project.pdf" target="_blank" rel="noopener">↓ read the paper</a>
+      </div>
+      <div class="fact-block">
+        <div class="fact-label">code</div>
+        <a class="paper-btn" href="#" target="_blank" rel="noopener">↗ view code</a>
       </div>
     </div>
 
     <div class="desc" data-reveal>
       <h3>overview</h3>
-      <p>[Placeholder paragraph — what the project was, the motivating problem, and why it mattered.]</p>
+      <p>Final project for EML4312, Control of Mechanical Engineering Systems: linearizing a sky crane's nonlinear 12-state equations of motion about hover, then designing and comparing three controllers against a shared set of height and pitch reference-tracking requirements — a PID controller, a frequency-domain loop-shaping compensator, and a full-state feedback law from pole placement.</p>
+
       <h3>approach</h3>
-      <p>[Placeholder paragraph — technical approach, design decisions, and your specific contributions.]</p>
-      <h3>results</h3>
-      <p>[Placeholder paragraph — outcomes, test data, or what was learned. This is the section a lab reviewer will read closest.]</p>
+      <ul>
+        <li>Linearized the nonlinear equations of motion about hover equilibrium into state-space form, and confirmed the open-loop system is not BIBO stable (repeated poles at the origin) before designing any controller</li>
+        <li>Tuned a PID controller via root locus, trading off rise time, overshoot and steady-state error against a competing pitch-tracking requirement</li>
+        <li>Designed a frequency-domain loop-shaping compensator on the Bode plot to meet steady-state error, disturbance-rejection and positive gain/phase margin specifications</li>
+        <li>Derived a full-state feedback gain matrix by pole placement and checked it against thrust, roll and pitch disturbances</li>
+        <li>Verified every controller on both the linearized Simulink model and the full nonlinear dynamics</li>
+      </ul>
+
+      <!-- Krittin added the real exported plots (linsim/nonlinsim result,
+           Figures 9/10 and 12/13 from the paper) — these replace the earlier
+           AI-simulated PID/loop-shaping stand-ins now that real ones exist,
+           since a real result beats a reconstruction of the same thing.
+           Pole placement still has no exported plot, so it keeps the
+           AI-simulated illustrative curve (flagged as such below).
+
+           Krittin: "dont cut off the plots show the entire plots" — each is
+           a tall 4-subplot composite (two figures baked into one image),
+           and the boxed `.detail-figure-media` (max-height:440px) squeezed
+           them down to near-illegible even with `.is-chart`'s `contain`
+           (which avoids cropping but not shrinking). `.detail-figure--plain`
+           instead — full column width, natural aspect ratio, no height cap
+           — same fix already used for Navigator's flight-log results. -->
+      <figure class="detail-figure detail-figure--plain">
+        <img src="../assets/images/projects/crane-linsim-result.png" alt="Linear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
+        <figcaption>linear simulation — height/pitch tracking and control effort (Figures 9–10)</figcaption>
+      </figure>
+      <figure class="detail-figure detail-figure--plain">
+        <img src="../assets/images/projects/crane-nonlinsim-result.png" alt="Nonlinear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
+        <figcaption>nonlinear simulation — height/pitch tracking and control effort (Figures 12–13)</figcaption>
+      </figure>
+      <!-- Krittin: "add the plots by yourself based on the paper" — no
+           exported figure exists for pole placement, so this is this
+           project's own real closed-loop poles/K-matrix simulated fresh
+           (RK4 on the controllable-canonical realization), not invented
+           numbers. Illustrative only — an even mix of decay modes at the
+           paper's actual 10 chosen poles, not a replica of its noisy
+           pulse-disturbance sim, which needs the full nonlinear model to
+           reproduce exactly — flag as needing his read-through. -->
+      <figure class="detail-figure detail-figure--inset align-right">
+        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/crane-poleplacement-response.svg" alt="Full-state feedback — illustrative decay of a height disturbance under the chosen pole placement"></div>
+        <figcaption>full-state feedback — illustrative disturbance decay at the chosen poles</figcaption>
+      </figure>
     </div>
   </div>
 
