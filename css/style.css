@@ -123,7 +123,10 @@ body{
      --void background underneath. */
   background-image:radial-gradient(1400px 900px at 50% 40%,
     rgba(10,12,17,calc(var(--sky-color, 1))), var(--void) 70%);
-  background-attachment:fixed;
+  /* Full-page fixed backgrounds are repainted during scroll on some laptop
+     GPU/compositor paths. The dedicated fixed nebula and stars already carry
+     the backdrop, so keeping this subtle vignette in normal flow is cheaper. */
+  background-attachment:scroll;
 }
 
 /* ---------- nebula backdrop ----------
@@ -170,7 +173,6 @@ img, video{ max-width:100%; display:block; }
 .star-layer{
   position:absolute; inset:-25%;
   background-repeat:repeat;
-  will-change:background-position;
 }
 
 .star-far{
@@ -249,8 +251,10 @@ img, video{ max-width:100%; display:block; }
   display:flex; align-items:center; justify-content:space-between;
   padding:0 40px; height:var(--nav-h);
   border-bottom:1px solid var(--ash);
-  background:rgba(8,9,13,.82);
-  backdrop-filter:blur(8px);
+  /* A translucent blur forces the browser to re-sample everything behind the
+     sticky bar on every scroll frame. A slightly more opaque flat surface is
+     visually equivalent here and stays on the compositor fast path. */
+  background:rgba(8,9,13,.96);
   font-family:var(--mono); font-size:15px; letter-spacing:-.02em; text-transform:lowercase;
 }
 .topnav .wordmark{ font-weight:500; }

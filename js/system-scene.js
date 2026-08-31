@@ -1558,7 +1558,11 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // frame, for a scene whose whole budget argument is "must not cost anything
   // noticeable". 1.6 gives back about a third of that and the difference is
   // not visible on a body made of flat posterised bands.
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+  // Cap framebuffer area as well as DPR. High-density laptop panels otherwise
+  // render several times more pixels than the same laptop's HDMI monitor.
+  const pixelRatioFor = (w, h) =>
+    Math.max(1, Math.min(window.devicePixelRatio || 1, 1.6, Math.sqrt(2400000 / Math.max(1, w * h))));
+  renderer.setPixelRatio(pixelRatioFor(canvas.clientWidth, canvas.clientHeight));
 
   const earthTex = bakeEquirect(renderer, BAKE_W, EARTH_BAKE_GLSL);
   const moonTex = bakeEquirect(renderer, BAKE_W, MOON_BAKE_GLSL);
@@ -2450,6 +2454,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     if (!w || !h) return;
     viewW = w;
     viewH = h;
+    renderer.setPixelRatio(pixelRatioFor(w, h));
     renderer.setSize(w, h, false);
 
     // ---- the spill --------------------------------------------------------

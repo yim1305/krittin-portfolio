@@ -40,6 +40,17 @@ const GREEN = 0xa0ca92;
 const GLOBE_R = 1.5;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// A DPR-only cap is misleading on laptop panels: 1440x900 at DPR 2 asks the
+// integrated GPU to shade 5.2 million pixels every frame, while a larger HDMI
+// monitor at DPR 1 may cost less than half as much. Keep the canvas crisp, but
+// bound the actual framebuffer so high-density displays do not become the
+// slowest way to view the site.
+const MAX_RENDER_PIXELS = 2200000;
+function renderPixelRatio(width, height, ceiling = 2) {
+  const pixelBudgetRatio = Math.sqrt(MAX_RENDER_PIXELS / Math.max(1, width * height));
+  return Math.max(0.75, Math.min(window.devicePixelRatio || 1, ceiling, pixelBudgetRatio));
+}
+
 const SATELLITES = [
   { id: "home",       label: "home",              href: "#home",       radius: 1.95, tilt: -10, incl: 18,  speed: 0.13, phase: 150, color: GREEN  },
   { id: "about",      label: "about",             href: "#about",      radius: 2.35, tilt: 8,   incl: 12,  speed: 0.10, phase: 0,   color: ORANGE },
@@ -425,7 +436,7 @@ function buildStarfield(count = 2200) {
   const uniforms = {
     uTime: { value: 0 },
     uFade: { value: REDUCED ? 1 : 0 },
-    uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+    uPixelRatio: { value: 1 },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -547,7 +558,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   camera.position.set(0, 1.1, 8);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(renderPixelRatio(container.clientWidth, container.clientHeight));
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -811,6 +822,14 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   let viewW = 0;
   let viewH = 0;
   let stacked = false;
+  let qualityScale = 1;
+
+  function applyRenderQuality() {
+    const pixelRatio = Math.max(0.75, renderPixelRatio(viewW, viewH) * qualityScale);
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(viewW, viewH, false);
+    stars.uniforms.uPixelRatio.value = pixelRatio;
+  }
 
   function fitDistance(aspect, centerX) {
     const tan = Math.tan((camera.fov * Math.PI) / 360);
@@ -873,17 +892,15 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   function resize() {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    renderer.setSize(w, h, false);
     camera.aspect = w / h;
     viewW = w;
     viewH = h;
+    applyRenderQuality();
 
     // Keyed off innerWidth, not the container: this has to flip at exactly
     // the same point as the `max-width: 900px` rule that stacks the hero, and
     // a scrollbar makes the container a little narrower than the viewport.
     stacked = window.innerWidth <= STACK_BREAKPOINT;
-
-    stars.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
 
     camDistance = fitDistance(camera.aspect, stacked ? 0.5 : SCENE_CENTER_WIDE);
     applyDescent();
@@ -933,6 +950,9 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   // has already landed within the last ~16ms.
   const FRAME_MS = 1000 / 60;
   let lastFrame = 0;
+  let perfSamples = 0;
+  let slowSamples = 0;
+  let qualityReductions = 0;
 
   function animate(now) {
     if (!onScreen) {
@@ -946,6 +966,24 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
       return;
     }
     lastFrame = now;
+
+    // A weak GPU presents as sustained long frame intervals. Step down the
+    // internal framebuffer after a representative sample instead of forcing
+    // every visitor to accept lower quality. At most two reductions are made,
+    // and the 0.75 floor remains considerably sharper than a CSS fallback.
+    if (!document.hidden && qualityReductions < 2) {
+      perfSamples++;
+      if (elapsed > 24) slowSamples++;
+      if (perfSamples >= 90) {
+        if (slowSamples / perfSamples > 0.28) {
+          qualityScale *= 0.8;
+          qualityReductions++;
+          applyRenderQuality();
+        }
+        perfSamples = 0;
+        slowSamples = 0;
+      }
+    }
 
     // Capped so a tab coming back from being backgrounded (or the debugger
     // pausing) doesn't dump one giant catch-up step into the orbits.

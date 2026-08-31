@@ -607,7 +607,10 @@ function initStarfield() {
   // to a 60fps baseline on purpose, per Krittin: "it has to work on weaker
   // laptops as well" — this is the target frame budget, not just a ceiling
   // for fast screens.
-  const FRAME_MS = 1000 / 60;
+  // These frames only move decorative backdrop pixels. 24 Hz still reads as
+  // continuous at the very slow drift speeds, while halving three large
+  // gradient repaints and leaving more of each frame for smooth page scroll.
+  const FRAME_MS = 1000 / 24;
   let lastFrame = 0;
   const t0 = performance.now();
   function frame(now) {
