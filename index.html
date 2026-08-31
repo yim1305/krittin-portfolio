@@ -8,6 +8,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- ?v= is a manual cache-buster, not a build hash — there is no build step.
        GitHub Pages' CDN (and browsers) can keep serving an OLDER style.css/
@@ -707,8 +708,6 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initOrbitScene } from "./js/orbit-scene.js?v=20260831c";
-
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface
     // bakes is the only expensive thing it ever does — after that it renders
@@ -756,35 +755,51 @@
       }
     }
 
-    // Looked up once. onTelemetry fires ~8 times a second, and re-querying the
-    // payload counter inside it was a DOM lookup per tick for a value that
-    // never moves.
-    const telEls = {
-      az: document.querySelector('[data-tel="az"]'),
-      el: document.querySelector('[data-tel="el"]'),
-      range: document.querySelector('[data-tel="range"]'),
-      track: document.querySelector('[data-tel="track"]'),
-      count: document.getElementById("payload-count"),
-    };
+    async function startOrbitScene() {
+      try {
+        // Let HTML, typography, navigation and the first frame paint before
+        // downloading/parsing Three.js or compiling the hero's WebGL shaders.
+        const { initOrbitScene } = await import("./js/orbit-scene.js?v=20260831d");
 
-    initOrbitScene({
-      canvas: document.getElementById("orbit-canvas"),
-      labelLayer: document.getElementById("orbit-labels"),
-      onSelect: (id) => window.smoothScrollTo("#" + id),
-      onTelemetry: (t) => {
-        telEls.az.textContent = t.az.toFixed(1).padStart(5, "0") + "°";
-        telEls.el.textContent = (t.el >= 0 ? "+" : "−") + Math.abs(t.el).toFixed(1) + "°";
-        telEls.range.textContent = t.range.toFixed(2) + " re";
+        // Looked up once. onTelemetry fires ~8 times a second.
+        const telEls = {
+          az: document.querySelector('[data-tel="az"]'),
+          el: document.querySelector('[data-tel="el"]'),
+          range: document.querySelector('[data-tel="range"]'),
+          track: document.querySelector('[data-tel="track"]'),
+          count: document.getElementById("payload-count"),
+        };
 
-        const locked = t.tracking && t.sats.find((s) => s.id === t.tracking);
-        telEls.track.textContent = locked
-          ? locked.label + " · r " + locked.radius.toFixed(2) + " · ν " + locked.anomaly.toFixed(0) + "°"
-          : t.sats.length + " satellites nominal";
-        telEls.track.classList.toggle("hot", Boolean(locked));
+        initOrbitScene({
+          canvas: document.getElementById("orbit-canvas"),
+          labelLayer: document.getElementById("orbit-labels"),
+          onSelect: (id) => window.smoothScrollTo("#" + id),
+          onTelemetry: (t) => {
+            telEls.az.textContent = t.az.toFixed(1).padStart(5, "0") + "°";
+            telEls.el.textContent = (t.el >= 0 ? "+" : "−") + Math.abs(t.el).toFixed(1) + "°";
+            telEls.range.textContent = t.range.toFixed(2) + " re";
 
-        telEls.count.textContent = t.sats.length;
-      },
-    });
+            const locked = t.tracking && t.sats.find((s) => s.id === t.tracking);
+            telEls.track.textContent = locked
+              ? locked.label + " · r " + locked.radius.toFixed(2) + " · ν " + locked.anomaly.toFixed(0) + "°"
+              : t.sats.length + " satellites nominal";
+            telEls.track.classList.toggle("hot", Boolean(locked));
+            telEls.count.textContent = t.sats.length;
+          },
+        });
+      } catch (error) {
+        console.error("Could not load the orbit scene", error);
+      }
+    }
+
+    // requestIdleCallback runs after the first paint in Chromium. The timeout
+    // prevents the globe from waiting behind a permanently busy main thread;
+    // other browsers use a two-frame fallback with the same paint-first goal.
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(() => void startOrbitScene(), { timeout: 350 });
+    } else {
+      requestAnimationFrame(() => requestAnimationFrame(() => void startOrbitScene()));
+    }
   </script>
 
   <!-- Krittin: "just make it copied to their clipboard and say copied to

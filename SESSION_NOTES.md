@@ -122,3 +122,17 @@ Implementation order originally identified:
 4. Rework frame pacing and reduce/shorten deliberately long scroll/page-transition durations.
 
 Items 1, 2, the smaller bake/minified dependency portion of 3, and the duration portion of 4 are now implemented locally. Remaining verification should focus on Chromium rendering behavior on the user's internal panel after publishing `20260831c`.
+
+## Startup-only optimization pass
+
+After the `20260831c` repaint fix, the user confirmed rotation and dragging were smooth; only cold loading and the first moments remained slow. Applied locally afterward:
+
+- The homepage no longer statically imports `orbit-scene.js`. It schedules a dynamic import after the first paint (`requestIdleCallback` with a 350 ms timeout, or a two-frame fallback), so DOM content, navigation, typing, and other page behavior no longer wait for Three.js download/parse or WebGL initialization.
+- Added an early `preconnect` to unpkg so deferring the hero does not add avoidable connection setup latency.
+- Changed the orbit scene cache key to `20260831d`.
+- Reduced the procedural hero surface bake again, from 1024x512 to 768x384.
+- High-density desktop displays now start the hero at `qualityScale = 0.8` instead of overloading the first frames at full quality and waiting for adaptation.
+- Adaptive quality evaluates after 45 rendered samples instead of 90 and stores the learned scale in `localStorage`, separated into `hidpi` and `standard` keys, so later visits start at the known-safe quality.
+- Shortened the hero arrival animation from 1900 ms to 1100 ms so successful loading no longer visually resembles a long stall.
+
+These startup changes are local and still need publishing/testing in Chromium on the built-in panel.

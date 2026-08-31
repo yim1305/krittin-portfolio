@@ -115,7 +115,7 @@ const NOISE_GLSL = /* glsl */ `
 // The direction reconstruction below mirrors THREE.SphereGeometry's own UV
 // convention exactly, so the bake lines up with the mesh with no seam.
 // --------------------------------------------------------------------------
-function bakeSurfaceTexture(renderer, width = 1024) {
+function bakeSurfaceTexture(renderer, width = 768) {
   const height = width / 2;
 
   const target = new THREE.WebGLRenderTarget(width, height, {
@@ -822,7 +822,25 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   let viewW = 0;
   let viewH = 0;
   let stacked = false;
-  let qualityScale = 1;
+  const highDensityDesktop = window.innerWidth > 900 && (window.devicePixelRatio || 1) > 1.25;
+  const qualityKey = "krj-orbit-quality:" + (highDensityDesktop ? "hidpi" : "standard");
+  let qualityScale = highDensityDesktop ? 0.8 : 1;
+  try {
+    const remembered = Number(localStorage.getItem(qualityKey));
+    if (Number.isFinite(remembered) && remembered >= 0.6 && remembered <= 1) {
+      qualityScale = Math.min(qualityScale, remembered);
+    }
+  } catch (e) {
+    /* Storage unavailable; adaptive quality still works for this visit. */
+  }
+
+  function rememberQuality() {
+    try {
+      localStorage.setItem(qualityKey, qualityScale.toFixed(3));
+    } catch (e) {
+      /* Storage unavailable. */
+    }
+  }
 
   function applyRenderQuality() {
     const pixelRatio = Math.max(0.75, renderPixelRatio(viewW, viewH) * qualityScale);
@@ -910,7 +928,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   // ---- arrival -----------------------------------------------------------
   // Camera eases in from far out while the planet and stars fade up, so the
   // hero resolves instead of just appearing.
-  const INTRO_MS = REDUCED ? 0 : 1900;
+  const INTRO_MS = REDUCED ? 0 : 1100;
   let introStart = null;
   let introDone = REDUCED;
 
@@ -974,10 +992,11 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     if (!document.hidden && qualityReductions < 2) {
       perfSamples++;
       if (elapsed > 24) slowSamples++;
-      if (perfSamples >= 90) {
+      if (perfSamples >= 45) {
         if (slowSamples / perfSamples > 0.28) {
-          qualityScale *= 0.8;
+          qualityScale = Math.max(0.6, qualityScale * 0.8);
           qualityReductions++;
+          rememberQuality();
           applyRenderQuality();
         }
         perfSamples = 0;
