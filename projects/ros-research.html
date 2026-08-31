@@ -8,19 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831c">
+  <link rel="stylesheet" href="../css/style.css?v=20260831f">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831c"></script>
+  <script src="../js/main.js?v=20260831f"></script>
 </head>
 <body>
 
   <div class="nebula" id="nebula"></div>
 
   <div class="stars" id="stars">
-      <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
       <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
-      <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
     </div>
 
   <nav class="topnav">
@@ -58,7 +56,7 @@
        further down in .desc. -->
   <div class="detail-media">
     <div class="detail-media-inner">
-      <img src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/cbf-1.png" alt="Gazebo simulation — rectangular safe-set boundary with the robot near its center">
     </div>
   </div>
 
@@ -97,7 +95,7 @@
       </ul>
 
       <figure class="detail-figure">
-        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/cbf-2.png" alt="Top-down trajectory plot — robot path spiraling into the waypoint, heading vector marked in red"></div>
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cbf-2.png" alt="Top-down trajectory plot — robot path spiraling into the waypoint, heading vector marked in red"></div>
         <figcaption>waypoint approach — heading-aware trajectory</figcaption>
       </figure>
     </div>

@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831c">
+  <link rel="stylesheet" href="../css/style.css?v=20260831f">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831c"></script>
+  <script src="../js/main.js?v=20260831f"></script>
 
   <!-- Import map for js/cmg-scene.js's "three" specifier — same CDN build
        index.html's two scenes use, see the note there. Only this one detail
@@ -29,9 +29,7 @@
   <div class="nebula" id="nebula"></div>
 
   <div class="stars" id="stars">
-      <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
       <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
-      <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
     </div>
 
   <nav class="topnav">
@@ -131,7 +129,7 @@
       <p>A Hybrid Control Moment Gyroscope (HCMG) combines the high-torque slewing capability of a Control Moment Gyroscope (CMG) with the precise pointing capability of a reaction wheel, making it well suited for CubeSats with limited space and actuator resources. However, external disturbances in low Earth orbit continuously introduce angular momentum into the spacecraft, which can accumulate and eventually saturate the HCMG, limiting its ability to control the spacecraft. This research investigates the use of magnetorquers (MTQs) to actively dump accumulated momentum while maintaining effective attitude control without interfering with the HCMG steering algorithm.</p>
 
       <figure class="detail-figure detail-figure--inset align-left">
-        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/cmg-pyramid-configuration.png" alt="Four-CMG pyramid mounting, each wheel's spin, gimbal and output-torque axes labeled"></div>
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/cmg-pyramid-configuration.png" alt="Four-CMG pyramid mounting, each wheel's spin, gimbal and output-torque axes labeled"></div>
         <figcaption>four-CMG pyramid array — spin, gimbal and torque axes</figcaption>
       </figure>
 
@@ -145,17 +143,38 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initCmgScene } from "../js/cmg-scene.js?v=20260830d";
     const canvas = document.getElementById("cmg-canvas");
     if (canvas) {
-      initCmgScene({
-        canvas,
-        dataUrl: "../assets/data/cmg-sim.csv",
-        offDataUrl: "../assets/data/cmg-sim-mtq-off.csv",
-        chartOnEl: document.getElementById("cmg-chart-on"),
-        chartOffEl: document.getElementById("cmg-chart-off"),
-        hudEl: document.getElementById("cmg-hud"),
-      });
+      let mounted = false;
+      const mount = async () => {
+        if (mounted) return;
+        mounted = true;
+        try {
+          const { initCmgScene } = await import("../js/cmg-scene.js?v=20260831e");
+          await initCmgScene({
+            canvas,
+            dataUrl: "../assets/data/cmg-sim.csv",
+            offDataUrl: "../assets/data/cmg-sim-mtq-off.csv",
+            chartOnEl: document.getElementById("cmg-chart-on"),
+            chartOffEl: document.getElementById("cmg-chart-off"),
+            hudEl: document.getElementById("cmg-hud"),
+          });
+        } catch (error) {
+          mounted = false;
+          console.error("Could not load the CMG simulation", error);
+        }
+      };
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          void mount();
+        }, { rootMargin: "320px" });
+        observer.observe(canvas);
+      } else {
+        void mount();
+      }
     }
   </script>
 

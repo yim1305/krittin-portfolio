@@ -299,6 +299,7 @@ function buildClouds(surfaceTex) {
 
       void main(){
         float a = texture2D(uSurface, vUv).a;
+        if (a < 0.01) discard;
         // Flat --chalk at low opacity: a weather overlay on the chart, not
         // volumetric cloud. Two quantised levels come from the bake.
         float day = step(0.0, dot(normalize(vWorldN), normalize(uLight)));
@@ -352,17 +353,26 @@ function buildGraticule(radius) {
     color: ORANGE, transparent: true, opacity: 0.6, depthWrite: false,
   });
 
-  const SEG = 128;
+  // Build the neutral grid as one LineSegments geometry instead of nineteen
+  // separate LineLoop draw calls. At hairline width, 64 segments per circle
+  // remain visually smooth while substantially reducing vertices and draws.
+  const SEG = 64;
+  const gridPoints = [];
+  const addLoop = (points) => {
+    for (let i = 0; i < points.length - 1; i++) gridPoints.push(points[i], points[i + 1]);
+  };
   const meridians = 12;
   for (let i = 0; i < meridians; i++) {
     const pts = [];
+    const yaw = (i / meridians) * Math.PI;
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
     for (let a = 0; a <= SEG; a++) {
       const t = (a / SEG) * Math.PI * 2;
-      pts.push(new THREE.Vector3(radius * Math.sin(t), radius * Math.cos(t), 0));
+      const x = radius * Math.sin(t);
+      pts.push(new THREE.Vector3(x * cy, radius * Math.cos(t), -x * sy));
     }
-    const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat);
-    line.rotation.y = (i / meridians) * Math.PI;
-    group.add(line);
+    addLoop(pts);
   }
 
   const parallels = 8;
@@ -375,8 +385,9 @@ function buildGraticule(radius) {
       const t = (a / SEG) * Math.PI * 2;
       pts.push(new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t)));
     }
-    group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+    addLoop(pts);
   }
+  group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), gridMat));
 
   const eqPts = [];
   for (let a = 0; a <= SEG; a++) {
@@ -550,14 +561,36 @@ function buildCubesat(color) {
 const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
 
 // --------------------------------------------------------------------------
-export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
+export function initOrbitScene({ canvas, labelLayer, displayFrameMs = 1000 / 60, onSelect, onTelemetry }) {
   const container = canvas.parentElement;
   const scene = new THREE.Scene();
+
+  const displayHz = Math.max(30, Math.min(240, 1000 / displayFrameMs));
+  const highDensityDesktop =
+    window.innerWidth > 900 &&
+    (window.devicePixelRatio || 1) > 1.25 &&
+    window.matchMedia("(pointer: fine)").matches;
+
+  // Use an integer number of display refreshes per rendered frame. This keeps
+  // motion evenly paced: 120 Hz becomes 60, 144 Hz becomes 72, and 165 Hz
+  // becomes 82.5. A 90 Hz panel stays at 90 instead of falling into the
+  // visibly uneven ~45 Hz cadence produced by elapsed-time frame skipping.
+  const frameDivisor = Math.max(1, Math.floor((displayHz + 1) / 60));
+  const targetFrameMs = (1000 / displayHz) * frameDivisor;
+  const targetFps = 1000 / targetFrameMs;
 
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
   camera.position.set(0, 1.1, 8);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    // Chromium can otherwise prefer the integrated low-power path even for
+    // this site's full-screen interactive WebGL hero. This remains a hint;
+    // browsers and single-GPU devices are free to ignore it.
+    powerPreference: highDensityDesktop ? "high-performance" : "default",
+  });
   renderer.setPixelRatio(renderPixelRatio(container.clientWidth, container.clientHeight));
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -586,7 +619,10 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   controls.autoRotate = !REDUCED;
   controls.autoRotateSpeed = 0.22;
 
-  const surfaceTex = bakeSurfaceTexture(renderer);
+  // The procedural surface is baked once, but its shader is intentionally
+  // expensive. 512x256 retains ample detail at the reduced high-DPI canvas
+  // resolution and cuts this first-load GPU work by more than half.
+  const surfaceTex = bakeSurfaceTexture(renderer, highDensityDesktop ? 512 : 768);
   const planet = buildPlanet(surfaceTex);
   const clouds = buildClouds(surfaceTex);
   const graticule = buildGraticule(GLOBE_R * 1.004);
@@ -643,7 +679,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   const satByObjectId = new Map();
   satellites.forEach((s) => s.mesh.traverse((obj) => satByObjectId.set(obj.id, s)));
 
-  function positionSatellite(sat, t) {
+  function positionSatellite(sat, t, dt) {
     const { radius, tilt, incl, speed, phase } = sat.cfg;
     const deg = phase + t * speed * 40;
     sat.anomaly = ((deg % 360) + 360) % 360;
@@ -667,7 +703,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     px = x3; py = y3;
 
     sat.mesh.position.set(px, py, pz);
-    if (!REDUCED) sat.mesh.rotation.y += 0.004; // slow self-spin, purely decorative
+    if (!REDUCED) sat.mesh.rotation.y += 0.004 * dt * 60; // refresh-rate independent
   }
 
   // ---- pointer -----------------------------------------------------------
@@ -687,6 +723,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   let canvasHoverId = null;
   let labelHoverId = null;
   let hoveredId = null;
+  let cursorHoverId = null;
   const pointerLocal = { x: 0, y: 0 }; // container-relative
 
   function updatePointer(e) {
@@ -822,9 +859,11 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   let viewW = 0;
   let viewH = 0;
   let stacked = false;
-  const highDensityDesktop = window.innerWidth > 900 && (window.devicePixelRatio || 1) > 1.25;
   const qualityKey = "krj-orbit-quality:" + (highDensityDesktop ? "hidpi" : "standard");
-  let qualityScale = highDensityDesktop ? 0.8 : 1;
+  // Preserve smooth 90 Hz motion by trading a little internal resolution for
+  // the extra frames. The square root keeps total shaded pixels per second
+  // close to the same budget as the 60 Hz path.
+  let qualityScale = highDensityDesktop ? 0.8 * Math.min(1, Math.sqrt(60 / targetFps)) : 1;
   try {
     const remembered = Number(localStorage.getItem(qualityKey));
     if (Number.isFinite(remembered) && remembered >= 0.6 && remembered <= 1) {
@@ -956,18 +995,11 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     ).observe(container);
   }
 
-  // requestAnimationFrame fires at the DISPLAY's refresh rate, not a fixed
-  // 60Hz — on a 90/120/144Hz panel (increasingly the default on laptop
-  // screens, even though an external monitor is very often still 60Hz) this
-  // loop was re-baking a full WebGL frame, re-running OrbitControls' damping,
-  // and re-raycasting the hover test 1.5-2.4x more often than on a 60Hz
-  // display, for no visual benefit — and `dt` below used to be hardcoded to
-  // 0.016s regardless of the real interval, so every orbit, spin and easing
-  // step ran that much FASTER too, not just more often. Both are fixed by
-  // measuring the real elapsed time and skipping the frame entirely once one
-  // has already landed within the last ~16ms.
-  const FRAME_MS = 1000 / 60;
+  // The display was sampled before WebGL startup. Count actual refreshes
+  // instead of using an elapsed-time threshold, which gives high-refresh
+  // laptop panels a stable cadence rather than irregular frame skips.
   let lastFrame = 0;
+  let displayFrame = 0;
   let perfSamples = 0;
   let slowSamples = 0;
   let qualityReductions = 0;
@@ -978,11 +1010,12 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
       return;
     }
 
-    const elapsed = lastFrame ? now - lastFrame : FRAME_MS;
-    if (elapsed < FRAME_MS * 0.9) {
+    displayFrame++;
+    if (displayFrame % frameDivisor !== 0) {
       requestAnimationFrame(animate);
       return;
     }
+    const elapsed = lastFrame ? now - lastFrame : targetFrameMs;
     lastFrame = now;
 
     // A weak GPU presents as sustained long frame intervals. Step down the
@@ -991,7 +1024,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     // and the 0.75 floor remains considerably sharper than a CSS fallback.
     if (!document.hidden && qualityReductions < 2) {
       perfSamples++;
-      if (elapsed > 24) slowSamples++;
+      if (elapsed > targetFrameMs * 1.45) slowSamples++;
       if (perfSamples >= 45) {
         if (slowSamples / perfSamples > 0.28) {
           qualityScale = Math.max(0.6, qualityScale * 0.8);
@@ -1041,9 +1074,9 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     }
 
     if (!REDUCED) {
-      earth.rotation.y += 0.0009;
-      cloudSpinner.rotation.y += 0.00035; // clouds drift relative to the surface
-      stars.points.rotation.y += 0.00004;
+      earth.rotation.y += 0.0009 * dt * 60;
+      cloudSpinner.rotation.y += 0.00035 * dt * 60; // clouds drift relative to the surface
+      stars.points.rotation.y += 0.00004 * dt * 60;
       stars.uniforms.uTime.value = t;
     }
 
@@ -1051,7 +1084,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     // from wherever the camera has been dragged to.
     limb.line.quaternion.copy(camera.quaternion);
 
-    satellites.forEach((sat) => positionSatellite(sat, t));
+    satellites.forEach((sat) => positionSatellite(sat, t, dt));
 
     // Hover test — done here rather than per pointermove so it costs one
     // raycast per frame at most. Live at every scroll position, because the
@@ -1070,8 +1103,15 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
       );
       labelHoverId = onLabel ? onLabel.cfg.id : null;
     }
-    hoveredId = canvasHoverId || labelHoverId;
-    renderer.domElement.style.cursor = canvasHoverId ? "pointer" : "";
+    const nextHoveredId = canvasHoverId || labelHoverId;
+    if (nextHoveredId !== hoveredId) {
+      hoveredId = nextHoveredId;
+      satellites.forEach((sat) => sat.labelEl.classList.toggle("is-hot", sat.cfg.id === hoveredId));
+    }
+    if (canvasHoverId !== cursorHoverId) {
+      cursorHoverId = canvasHoverId;
+      renderer.domElement.style.cursor = canvasHoverId ? "pointer" : "";
+    }
 
     satellites.forEach((sat) => {
       const target = sat.cfg.id === hoveredId ? 1.55 : 1;
@@ -1081,7 +1121,6 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
       // so far that they stop reading as targets, though: they are still the
       // way you pick a section from the About page.
       sat.mesh.scale.setScalar(sat.scale * (1 - 0.45 * descent));
-      sat.labelEl.classList.toggle("is-hot", sat.cfg.id === hoveredId);
     });
 
     controls.update();

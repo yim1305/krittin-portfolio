@@ -18,14 +18,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260831c">
+  <link rel="stylesheet" href="css/style.css?v=20260831f">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260831c"></script>
+  <script src="js/main.js?v=20260831f"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -91,9 +91,7 @@
   <!-- Three depth layers; main.js drifts and parallaxes them, and spawns
        the occasional meteor into .stars. -->
   <div class="stars" id="stars">
-    <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
     <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
-    <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
   </div>
 
   <nav class="topnav">
@@ -189,7 +187,7 @@
              exactly the height that freed up, so About's total is unchanged. -->
         <div class="about-plate" data-reveal>
           <div class="about-photo">
-            <img src="assets/images/krittin-portrait.jpg" alt="Krittin Jindamai standing beside Project TerraGator" />
+            <img loading="lazy" decoding="async" src="assets/images/krittin-portrait.jpg" alt="Krittin Jindamai standing beside Project TerraGator" />
           </div>
         </div>
         <div class="about-text" data-reveal>
@@ -586,9 +584,9 @@
            and return arcs between the bodies, Sky Crane landed on the Moon
            and the Lunar Hopper's arc off its south pole.
 
-           Nothing moves and the camera is fixed, so there is no render loop
-           at all — the scene draws on arrival and on resize and then costs
-           nothing. Every position lives in js/system-scene.js; there are no
+           The camera and objects stay fixed; only a very slow cloud shell is
+           redrawn at a low cadence while the section is visible. Every
+           position lives in js/system-scene.js; there are no
            --x/--y percentages any more, and no per-project images. See
            "Projects field" in CLAUDE.md. -->
       <div class="proj-field" id="proj-field" data-reveal>
@@ -710,10 +708,8 @@
   <script type="module">
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface
-    // bakes is the only expensive thing it ever does — after that it renders
-    // a handful of frames and stops, because nothing in it moves — and there
-    // is no reason to pay that cost while the hero is still on screen and
-    // already running its own scene.
+    // bakes is its main setup cost. It is deferred so that work never competes
+    // with the hero while the first screens are loading.
     //
     // Unlike the old Moon scene this mounts at every viewport: the stacked
     // layout keeps the canvas now (there are no flat fallback stills any
@@ -727,7 +723,7 @@
         try {
           // A real dynamic import: the 135 KB scene and its Three.js add-ons
           // are neither downloaded nor parsed until Projects approaches.
-          const { initSystemScene } = await import("./js/system-scene.js?v=20260831c");
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260831f");
           initSystemScene({
             canvas: systemCanvas,
             labelLayer: document.getElementById("system-labels"),
@@ -755,11 +751,38 @@
       }
     }
 
+    function measureDisplayFrameMs(sampleCount = 12) {
+      return new Promise((resolve) => {
+        const samples = [];
+        let previous = 0;
+
+        function sample(now) {
+          if (previous) samples.push(now - previous);
+          previous = now;
+          if (samples.length < sampleCount) {
+            requestAnimationFrame(sample);
+            return;
+          }
+
+          // The median ignores an isolated long frame caused by module parsing,
+          // an extension, or the browser doing first-paint housekeeping.
+          samples.sort((a, b) => a - b);
+          resolve(samples[Math.floor(samples.length / 2)] || 1000 / 60);
+        }
+
+        requestAnimationFrame(sample);
+      });
+    }
+
     async function startOrbitScene() {
       try {
-        // Let HTML, typography, navigation and the first frame paint before
-        // downloading/parsing Three.js or compiling the hero's WebGL shaders.
-        const { initOrbitScene } = await import("./js/orbit-scene.js?v=20260831d");
+        // Measure the panel while Three.js downloads/parses. requestAnimationFrame
+        // follows the active display, so this distinguishes a 90/144/165 Hz
+        // laptop panel from a 60 Hz HDMI monitor without browser sniffing.
+        const [{ initOrbitScene }, displayFrameMs] = await Promise.all([
+          import("./js/orbit-scene.js?v=20260831e"),
+          measureDisplayFrameMs(),
+        ]);
 
         // Looked up once. onTelemetry fires ~8 times a second.
         const telEls = {
@@ -773,6 +796,7 @@
         initOrbitScene({
           canvas: document.getElementById("orbit-canvas"),
           labelLayer: document.getElementById("orbit-labels"),
+          displayFrameMs,
           onSelect: (id) => window.smoothScrollTo("#" + id),
           onTelemetry: (t) => {
             telEls.az.textContent = t.az.toFixed(1).padStart(5, "0") + "°";

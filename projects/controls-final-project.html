@@ -8,19 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831c">
+  <link rel="stylesheet" href="../css/style.css?v=20260831f">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831c"></script>
+  <script src="../js/main.js?v=20260831f"></script>
 </head>
 <body>
 
   <div class="nebula" id="nebula"></div>
 
   <div class="stars" id="stars">
-      <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
       <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
-      <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
     </div>
 
   <nav class="topnav">
@@ -52,13 +50,13 @@
        grid. See that class in style.css. -->
   <div class="detail-media">
     <div class="detail-media-inner">
-      <img src="../assets/images/projects/crane-linear-simulink.png" alt="Linear Simulink model — PID/loop-shaping/pole-placement controller driving the linearized state-space plant with thrust, roll and pitch disturbances">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/crane-linear-simulink.png" alt="Linear Simulink model — PID/loop-shaping/pole-placement controller driving the linearized state-space plant with thrust, roll and pitch disturbances">
     </div>
   </div>
 
   <div class="sim-secondary">
     <figure class="detail-figure detail-figure--inset align-left">
-      <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/crane-nonlinear-simulink.png" alt="Nonlinear Simulink model — the same controllers driving the full nonlinear equations of motion for validation"></div>
+      <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/crane-nonlinear-simulink.png" alt="Nonlinear Simulink model — the same controllers driving the full nonlinear equations of motion for validation"></div>
       <figcaption>nonlinear model — same controllers validated on the full dynamics</figcaption>
     </figure>
   </div>
@@ -119,11 +117,11 @@
            instead — full column width, natural aspect ratio, no height cap
            — same fix already used for Navigator's flight-log results. -->
       <figure class="detail-figure detail-figure--plain">
-        <img src="../assets/images/projects/crane-linsim-result.png" alt="Linear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/crane-linsim-result.png" alt="Linear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
         <figcaption>linear simulation — height/pitch tracking and control effort (Figures 9–10)</figcaption>
       </figure>
       <figure class="detail-figure detail-figure--plain">
-        <img src="../assets/images/projects/crane-nonlinsim-result.png" alt="Nonlinear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/crane-nonlinsim-result.png" alt="Nonlinear simulation results — height and pitch tracking with disturbance, and their control inputs, vs time">
         <figcaption>nonlinear simulation — height/pitch tracking and control effort (Figures 12–13)</figcaption>
       </figure>
       <!-- Krittin: "add the plots by yourself based on the paper" — no
@@ -135,7 +133,7 @@
            pulse-disturbance sim, which needs the full nonlinear model to
            reproduce exactly — flag as needing his read-through. -->
       <figure class="detail-figure detail-figure--inset align-right">
-        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/crane-poleplacement-response.svg" alt="Full-state feedback — illustrative decay of a height disturbance under the chosen pole placement"></div>
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/crane-poleplacement-response.svg" alt="Full-state feedback — illustrative decay of a height disturbance under the chosen pole placement"></div>
         <figcaption>full-state feedback — illustrative disturbance decay at the chosen poles</figcaption>
       </figure>
     </div>

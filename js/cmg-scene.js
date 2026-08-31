@@ -176,6 +176,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const CHART_W = 600,
   CHART_H = 300;
 const CHART_MARGIN = { l: 50, r: 14, t: 14, b: 30 };
+let chartId = 0;
 
 function niceTicks(lo, hi, n = 4) {
   const step0 = (hi - lo) / n || 1;
@@ -190,9 +191,14 @@ function buildChart(container, t, seriesArrays, title) {
   const tMax = t[t.length - 1];
   const plotW = CHART_W - CHART_MARGIN.l - CHART_MARGIN.r;
   const plotH = CHART_H - CHART_MARGIN.t - CHART_MARGIN.b;
-  const allVals = seriesArrays.flat();
-  let yLo = Math.min(...allVals),
-    yHi = Math.max(...allVals);
+  let yLo = Infinity;
+  let yHi = -Infinity;
+  seriesArrays.forEach((series) => {
+    series.forEach((value) => {
+      if (value < yLo) yLo = value;
+      if (value > yHi) yHi = value;
+    });
+  });
   const pad = (yHi - yLo) * 0.08 || 50;
   yLo -= pad;
   yHi += pad;
@@ -205,6 +211,22 @@ function buildChart(container, t, seriesArrays, title) {
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", title);
   svg.style.fontFamily = "'JetBrains Mono', ui-monospace, monospace";
+
+  // Draw every series once and reveal it with one shared clip rectangle. The
+  // old update rebuilt four increasingly long point strings several times a
+  // second, doing thousands of number formats and DOM attribute replacements.
+  const clipName = `cmg-chart-clip-${++chartId}`;
+  const defs = document.createElementNS(SVG_NS, "defs");
+  const clip = document.createElementNS(SVG_NS, "clipPath");
+  clip.setAttribute("id", clipName);
+  const clipRect = document.createElementNS(SVG_NS, "rect");
+  clipRect.setAttribute("x", CHART_MARGIN.l);
+  clipRect.setAttribute("y", CHART_MARGIN.t);
+  clipRect.setAttribute("width", "0");
+  clipRect.setAttribute("height", plotH);
+  clip.appendChild(clipRect);
+  defs.appendChild(clip);
+  svg.appendChild(defs);
 
   function line(x1, y1, x2, y2, color) {
     const el = document.createElementNS(SVG_NS, "line");
@@ -244,14 +266,17 @@ function buildChart(container, t, seriesArrays, title) {
   });
   text(CHART_MARGIN.l + plotW / 2, CHART_H - 4, "orbits", "middle");
 
-  const polylines = seriesArrays.map((_, i) => {
+  seriesArrays.forEach((series, i) => {
     const el = document.createElementNS(SVG_NS, "polyline");
     el.setAttribute("fill", "none");
     el.setAttribute("stroke", CHART_COLORS[i]);
     el.setAttribute("stroke-width", "1.4");
     el.setAttribute("stroke-linejoin", "round");
+    el.setAttribute("clip-path", `url(#${clipName})`);
+    let points = "";
+    for (let k = 0; k < t.length; k++) points += `${X(t[k]).toFixed(1)},${Y(series[k]).toFixed(1)} `;
+    el.setAttribute("points", points);
     svg.appendChild(el);
-    return el;
   });
   const nowLine = line(CHART_MARGIN.l, CHART_MARGIN.t, CHART_MARGIN.l, CHART_MARGIN.t + plotH, "#8a8380");
   nowLine.setAttribute("stroke-dasharray", "2,2");
@@ -259,13 +284,8 @@ function buildChart(container, t, seriesArrays, title) {
   container.replaceChildren(svg);
 
   return function update(simTime) {
-    const { i0 } = findFrame(t, simTime);
-    seriesArrays.forEach((series, i) => {
-      let pts = "";
-      for (let k = 0; k <= i0; k++) pts += `${X(t[k]).toFixed(1)},${Y(series[k]).toFixed(1)} `;
-      polylines[i].setAttribute("points", pts);
-    });
     const xx = X(simTime);
+    clipRect.setAttribute("width", Math.max(0, xx - CHART_MARGIN.l));
     nowLine.setAttribute("x1", xx);
     nowLine.setAttribute("x2", xx);
   };
@@ -322,9 +342,15 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
   );
   camera.lookAt(0, 0, 0);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance",
+  });
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+  const pixelRatioFor = (w, h) =>
+    Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.4, Math.sqrt(1200000 / Math.max(1, w * h))));
 
   // ---- the bus: real 12U proportions (240 x 230 x 360mm), long axis local Z.
   const bodyGroup = new THREE.Group();
@@ -404,6 +430,7 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     if (!w || !h) return;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(pixelRatioFor(w, h));
     renderer.setSize(w, h, false);
     renderer.render(scene, camera);
   }
@@ -420,10 +447,14 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
 
   let frame = null;
   let visible = false;
+  let lastDraw = 0;
   let lastChartUpdate = 0;
+  const FRAME_INTERVAL = 1000 / 30;
 
   function tick(now) {
     frame = requestAnimationFrame(tick);
+    if (lastDraw && now - lastDraw < FRAME_INTERVAL * 0.9) return;
+    lastDraw = now;
     // Ping-pong the whole run across LOOP_SECONDS of wall-clock time — no
     // jump-cut at the loop point (start/end attitude don't match), and the
     // charts naturally grow/recede with the same clock since they only draw
@@ -436,10 +467,10 @@ export async function initCmgScene({ canvas, dataUrl, offDataUrl, chartOnEl, cha
     update(simTime); // body attitude + nadir — cheap, every frame
     renderer.render(scene, camera);
 
-    // Chart/HUD redraw is throttled well below 60fps (the chart rebuilds a
-    // full SVG polyline string per series) — same shared simTime, just
-    // sampled less often, so everything still reads as perfectly in sync.
-    if (now - lastChartUpdate > 80) {
+    // Chart/HUD redraw is throttled well below the 3D scene. Each chart now
+    // moves one clip rectangle over a prebuilt series instead of rebuilding
+    // thousands of SVG points, and shares this same simulation time.
+    if (now - lastChartUpdate > 160) {
       lastChartUpdate = now;
       updateChartOn && updateChartOn(simTime);
       updateChartOff && updateChartOff(simTime);

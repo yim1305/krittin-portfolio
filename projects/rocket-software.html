@@ -8,19 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=20260831c">
+  <link rel="stylesheet" href="../css/style.css?v=20260831f">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js?v=20260831c"></script>
+  <script src="../js/main.js?v=20260831f"></script>
 </head>
 <body>
 
   <div class="nebula" id="nebula"></div>
 
   <div class="stars" id="stars">
-      <div class="star-layer star-far"  data-depth="0.04" data-drift="26"></div>
       <div class="star-layer star-mid"  data-depth="0.10" data-drift="15"></div>
-      <div class="star-layer star-near" data-depth="0.20" data-drift="8"></div>
     </div>
 
   <nav class="topnav">
@@ -50,7 +48,7 @@
        photo, default crop-to-fill. -->
   <div class="detail-media">
     <div class="detail-media-inner">
-      <img src="../assets/images/projects/navigator-retention-system.png" alt="Payload nested in the rocket's retention system tube">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-retention-system.png" alt="Payload nested in the rocket's retention system tube">
     </div>
   </div>
 
@@ -63,11 +61,11 @@
        .cutout-row treatment TerraGator's rocket and ACS stills get. -->
   <div class="cutout-row">
     <figure class="cutout is-xl">
-      <img src="../assets/images/projects/navigator.png" alt="Project Navigator, finished rocket">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator.png" alt="Project Navigator, finished rocket">
       <figcaption>finished rocket</figcaption>
     </figure>
     <figure class="cutout">
-      <img src="../assets/images/projects/navigator-payload.png" alt="Payload deployment illustration, background removed — parachute descent and landed configuration">
+      <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-payload.png" alt="Payload deployment illustration, background removed — parachute descent and landed configuration">
       <figcaption>payload</figcaption>
     </figure>
   </div>
@@ -115,7 +113,7 @@
            restore it, and it wasn't in the Recycle Bin) — Krittin needs to
            re-supply it as navigator-software-design.png here. -->
       <figure class="detail-figure">
-        <div class="detail-figure-media"><img class="is-chart" src="../assets/images/projects/navigator-software-design.png" alt="Payload software architecture diagram"></div>
+        <div class="detail-figure-media"><img loading="lazy" decoding="async" class="is-chart" src="../assets/images/projects/navigator-software-design.png" alt="Payload software architecture diagram"></div>
         <figcaption>software architecture</figcaption>
       </figure>
 
@@ -126,15 +124,15 @@
            final telemetry), not simulation data. -->
       <h3>results</h3>
       <figure class="detail-figure detail-figure--plain detail-figure--inset align-left">
-        <img src="../assets/images/projects/navigator-preflight.png" alt="Pre-flight phase log — sensor initialization and launch detection">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-preflight.png" alt="Pre-flight phase log — sensor initialization and launch detection">
         <figcaption>pre-flight — sensor init and launch detection</figcaption>
       </figure>
       <figure class="detail-figure detail-figure--plain">
-        <img src="../assets/images/projects/navigator-flight.png" alt="Flight phase log — Kalman filter thread activity and landing detection">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-flight.png" alt="Flight phase log — Kalman filter thread activity and landing detection">
         <figcaption>flight — Kalman filter threads, landing detection</figcaption>
       </figure>
       <figure class="detail-figure detail-figure--plain detail-figure--inset align-right">
-        <img src="../assets/images/projects/navigator-postflight.png" alt="Post-flight phase log — final telemetry: temperature, apogee, battery, orientation">
+        <img loading="lazy" decoding="async" src="../assets/images/projects/navigator-postflight.png" alt="Post-flight phase log — final telemetry: temperature, apogee, battery, orientation">
         <figcaption>post-flight — final telemetry readout</figcaption>
       </figure>
     </div>

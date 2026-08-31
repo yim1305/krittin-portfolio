@@ -144,15 +144,9 @@ body{
      through Awards — Krittin: "add nebula to this page as well". Project
      detail pages set it to 0 outright. */
   opacity:calc(.38 * var(--sky-color, 1));
-  /* Overscaled so the drift, the scale breathe and the scroll parallax never
-     expose an edge. Raised three times alongside the drift amplitudes in
-     main.js (1.12 -> 1.19 -> 1.26 -> 1.34) as those went up: Krittin asked
-     for more speed twice after the first pass, and the overscan has to grow
-     with the excursion or a corner of the image reaches the frame.
-     **Raise this before raising the amplitudes in main.js's paint().** Under
-     prefers-reduced-motion it is overridden to `none` below: nothing moves,
-     so no margin is needed. */
-  transform:scale(1.34);
+  /* Modest overscan covers the bounded translation in main.js without asking
+     Chromium to keep a 1.34x full-screen texture in a compositor layer. */
+  transform:scale(1.22);
   will-change:transform;
   view-transition-name:nebula-layer;
 }
@@ -163,9 +157,7 @@ a:hover{ color:var(--chalk); }
 img, video{ max-width:100%; display:block; }
 
 /* ---------- starfield ----------
-   Three depth layers, each drifting at its own rate and parallaxing against
-   scroll (transforms are written by main.js). Layers are oversized so the
-   tiling seam never reaches an edge. */
+   One drifting layer over the stars already present in the nebula bitmap. */
 .stars{
   position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
   view-transition-name:star-layer;
@@ -176,29 +168,6 @@ img, video{ max-width:100%; display:block; }
   contain:paint;
   will-change:transform;
 }
-
-.star-far{
-  opacity:.55;
-  background-size:900px 900px;
-  background-image:
-    radial-gradient(1px 1px at 40px 60px,   #7d7d7d, transparent),
-    radial-gradient(1px 1px at 155px 210px, #646464, transparent),
-    radial-gradient(1px 1px at 260px 40px,  #7d7d7d, transparent),
-    radial-gradient(1px 1px at 330px 300px, #565656, transparent),
-    radial-gradient(1px 1px at 420px 130px, #7d7d7d, transparent),
-    radial-gradient(1px 1px at 505px 420px, #646464, transparent),
-    radial-gradient(1px 1px at 600px 250px, #565656, transparent),
-    radial-gradient(1px 1px at 690px 500px, #7d7d7d, transparent),
-    radial-gradient(1px 1px at 760px 90px,  #646464, transparent),
-    radial-gradient(1px 1px at 850px 380px, #565656, transparent),
-    radial-gradient(1px 1px at 90px 480px,  #7d7d7d, transparent),
-    radial-gradient(1px 1px at 200px 640px, #646464, transparent),
-    radial-gradient(1px 1px at 350px 780px, #565656, transparent),
-    radial-gradient(1px 1px at 470px 700px, #7d7d7d, transparent),
-    radial-gradient(1px 1px at 620px 850px, #646464, transparent),
-    radial-gradient(1px 1px at 800px 690px, #565656, transparent);
-}
-
 .star-mid{
   opacity:.75;
   background-size:1180px 1180px;
@@ -219,24 +188,11 @@ img, video{ max-width:100%; display:block; }
     radial-gradient(1.2px 1.2px at 1090px 720px, #b6b6b6, transparent);
 }
 
-.star-near{
-  opacity:.9;
-  background-size:1520px 1520px;
-  background-image:
-    radial-gradient(1.9px 1.9px at 120px 180px,   #ffffff, transparent),
-    radial-gradient(1.6px 1.6px at 380px 520px,   #e9e9e9, transparent),
-    radial-gradient(2.1px 2.1px at 640px 140px,   #ffffff, transparent),
-    radial-gradient(1.6px 1.6px at 900px 620px,   #efefef, transparent),
-    radial-gradient(1.9px 1.9px at 1180px 340px,  #e9e9e9, transparent),
-    radial-gradient(1.6px 1.6px at 1420px 760px,  #ffffff, transparent),
-    radial-gradient(2.1px 2.1px at 260px 940px,   #dcdcdc, transparent),
-    radial-gradient(1.6px 1.6px at 560px 1280px,  #ffffff, transparent),
-    radial-gradient(1.9px 1.9px at 820px 1060px,  #e9e9e9, transparent),
-    radial-gradient(1.6px 1.6px at 1100px 1400px, #efefef, transparent),
-    radial-gradient(2.1px 2.1px at 1360px 1120px, #ffffff, transparent);
-  animation:star-breathe 9s ease-in-out infinite;
-}
-@keyframes star-breathe{ 0%,100%{ opacity:.9; } 50%{ opacity:.62; } }
+/* Detail pages do not animate the backdrop. Release the compositor hints so
+   Chromium can keep these as ordinary cached paint instead of dedicated GPU
+   surfaces for the lifetime of the page. */
+.static-backdrop .nebula,
+.static-backdrop .star-layer{ transform:none; will-change:auto; }
 
 /* meteors — spawned by main.js, rare and short */
 .meteor{
@@ -263,9 +219,9 @@ img, video{ max-width:100%; display:block; }
 
 /* scroll progress hairline along the bottom edge of the nav */
 .scroll-progress{
-  position:absolute; left:0; bottom:-1px; height:1px; width:0;
+  position:absolute; left:0; bottom:-1px; height:1px; width:100%;
   background:var(--orange);
-  transition:width .1s linear;
+  transform:scaleX(0); transform-origin:left center;
 }
 
 /* Centred on the bar itself rather than laid out between the wordmark and the
@@ -1245,6 +1201,9 @@ section{ position:relative; z-index:1; }
   animation:marquee-scroll-v 64s linear infinite;
 }
 @keyframes marquee-scroll-v{ from{ transform:translateY(-50%); } to{ transform:translateY(0); } }
+.marquee .marquee-track{ animation-play-state:paused; }
+.marquee.is-visible .marquee-track{ animation-play-state:running; }
+.marquee:hover .marquee-track{ animation-play-state:paused; }
 .skill-tag{
   font-family:var(--mono); font-size:14px; text-transform:uppercase; letter-spacing:-.01em;
   color:var(--bone); border:1px solid var(--ash); border-radius:999px; padding:11px 22px 11px 17px;
@@ -1613,16 +1572,13 @@ footer{
   /* Selection still works, it just snaps to the chosen card instead of
      easing around to it. */
   .carousel-track{ transition:none; }
-  /* The Projects scene arrives assembled: js/system-scene.js checks the same
-     preference and skips its fade-up entirely, so there is nothing left here
-     to switch off. The scene is static in every case — there was never any
-     ongoing motion in it to stop. */
+  /* The Projects scene checks the same preference, skips its fade-up and
+     leaves the cloud shell still. */
   /* Both selectors, deliberately: `.marquee-v .marquee-track` outranks a bare
      `.marquee-track`, so the vertical marquee in About went on scrolling under
      a reduced-motion preference that had stopped the horizontal one. */
   .marquee-track, .marquee-v .marquee-track{ animation:none; }
   .star-layer{ transform:none !important; will-change:auto; }
-  .star-near{ animation:none; }
   .nebula{ transform:none; }
   .eyebrow .dot, .hero-focus .dot{ animation:none; }
   .hero-name .cursor, .proj-index .cursor{ animation:none; }

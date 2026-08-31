@@ -350,18 +350,29 @@ const STACK_BREAKPOINT = 900;
 // backdrop would crowd it.
 const PROJECT_SKY = 0.8;
 
-// Shared by initDescent and initScrollProgress: both re-measure on resize/load/
-// font-swap, and both want at most one rAF-queued `update` per scroll burst
-// rather than one per scroll event. `measure` recomputes cached layout numbers;
-// `update` writes styles from them (and is also what the scroll listener calls
-// directly, skipping `measure` since scrolling alone doesn't change layout).
-function wireRemeasure(measure, update) {
-  let queued = false;
+// One page-wide scroll scheduler. Descent and progress used to install their
+// own listeners and queue separate animation frames for the same scroll event.
+const scrollUpdates = new Set();
+let scrollFrame = 0;
+let scrollBound = false;
+
+function subscribeToScroll(update) {
+  scrollUpdates.add(update);
+  if (scrollBound) return;
+  scrollBound = true;
   window.addEventListener("scroll", () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(() => { queued = false; update(); });
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      scrollUpdates.forEach((fn) => fn());
+    });
   }, { passive: true });
+}
+
+// Shared by initDescent and initScrollProgress. `measure` recomputes cached
+// layout numbers; `update` writes styles from them.
+function wireRemeasure(measure, update) {
+  subscribeToScroll(update);
 
   const remeasure = () => { measure(); update(); };
   window.addEventListener("resize", remeasure);
@@ -487,7 +498,7 @@ function initScrollProgress() {
   }
   function update() {
     const p = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
-    bar.style.width = (p * 100).toFixed(2) + "%";
+    bar.style.transform = "scaleX(" + p.toFixed(4) + ")";
   }
 
   wireRemeasure(measure, update);
@@ -504,11 +515,15 @@ function initStarfield() {
   const nebula = document.getElementById("nebula");
   if (!root) return;
 
-  const layers = Array.from(root.querySelectorAll(".star-layer")).map((el) => ({
+  // One mid-depth layer is enough over the star-bearing nebula image. The old
+  // trio rasterized and composited three 140%-viewport gradient surfaces.
+  const layers = Array.from(root.querySelectorAll(".star-mid")).map((el) => ({
     el,
     depth: parseFloat(el.dataset.depth) || 0.1,
     drift: parseFloat(el.dataset.drift) || 12, // px per second, leftward
   }));
+  const dynamicBackdrop = Boolean(document.getElementById("home"));
+  if (!dynamicBackdrop) document.documentElement.classList.add("static-backdrop");
 
   // ---- continuity across navigations ----
   // Scroll resets on a new page, so the bounded parallax offset is carried
@@ -557,40 +572,16 @@ function initStarfield() {
     // paint() still runs once on load to restore the starfield's position,
     // and without this guard that single call would freeze the nebula at
     // one arbitrary point in the drift cycle instead of dead centre.
-    if (nebula && !REDUCED) {
-      // SPEED IS THE WHOLE POINT HERE, and it took two goes to get right.
-      // Krittin asked for the backdrop to stop feeling static, this was sped
-      // up once, and he reported it still looked frozen — correctly. The
-      // arithmetic says why: a sine of amplitude A and period T peaks at
-      // 2*pi*A/T px/s, so the previous 30px / 163s worked out at 1.1 px/s.
-      // That is below the threshold where a soft-edged cloud reads as moving
-      // at all; you would have to stare at a fixed landmark for ten seconds to
-      // catch it. The numbers below land around 4 px/s on the horizontal,
-      // which is unmistakable over a glance without being distracting.
-      //
-      // Three motions, on deliberately unrelated periods so the whole thing
-      // never visibly repeats: a fast-ish horizontal drift, a slower vertical
-      // one, and a scale BREATHE that swells and recedes. The breathe matters
-      // as much as the drift — sliding alone reads as a texture being panned,
-      // whereas swelling reads as cloud, which is what "the dust keeps moving"
-      // is asking for.
-      //
-      // Sped up AGAIN on request ("nebula move faster"), roughly doubling the
-      // ~4 px/s the previous pass landed on. Same three motions, shorter
-      // periods and wider amplitudes.
-      //
-      // The amplitudes are bounded by the CSS overscale, which went up to 1.34
-      // with them (see .nebula in style.css). Worst case here is 96px across
-      // and 48 + 30 of scroll parallax = 78px down, against a minimum scale of
-      // 1.285 — a 14.25% margin each side, which covers those excursions down
-      // to roughly a 680x550 viewport. Raise the CSS scale before raising
-      // these any further.
+    if (nebula && dynamicBackdrop && !REDUCED) {
+      // Slow bounded translation keeps the nebula alive without continuously
+      // rescaling a large compositor surface. Compact screens use half the
+      // excursion so the smaller 1.22 overscan still covers every edge.
       const t = live.clock;
-      const dx = Math.sin(t / 11) * 96; // ~69s period, peaks ~8.7 px/s
-      const dy = Math.cos(t / 15) * 48; // ~94s period, peaks ~3.2 px/s
-      const scale = 1.34 + Math.sin(t / 6.5) * 0.055; // ~41s breathe, 1.285-1.395
+      const compact = window.innerWidth < 700;
+      const dx = Math.sin(t / 11) * (compact ? 24 : 48);
+      const dy = Math.cos(t / 15) * (compact ? 12 : 24);
       nebula.style.transform =
-        "translate3d(" + dx.toFixed(1) + "px," + (live.nebY + dy).toFixed(1) + "px,0) scale(" + scale.toFixed(3) + ")";
+        "translate3d(" + dx.toFixed(1) + "px," + (live.nebY + dy).toFixed(1) + "px,0) scale(1.22)";
     }
   }
 
@@ -608,12 +599,14 @@ function initStarfield() {
   // and the view-transition snapshot of the incoming page is taken right
   // after, so the backdrop must already be in the right place.
   paint();
-  if (REDUCED) return;
+  // Detail pages use a static star layer. Their nebula is invisible, so a
+  // continuous backdrop loop cannot contribute a visible pixel there.
+  if (REDUCED || !dynamicBackdrop) return;
 
-  // These are compositor-only writes now. The drift is slow enough that 24
+  // These are compositor-only writes now. The drift is slow enough that 20
   // updates per second still looks continuous without doing needless work on
   // high-refresh displays.
-  const FRAME_MS = 1000 / 24;
+  const FRAME_MS = 1000 / 20;
   let lastFrame = 0;
   const t0 = performance.now();
   function frame(now) {
@@ -642,6 +635,22 @@ function initStarfield() {
   requestAnimationFrame(frame);
 
   scheduleMeteor(root);
+}
+
+// Keep the continuously translating skills strip paused until it is actually
+// visible. CSS animations otherwise keep their compositor layer active while
+// the reader is on the hero, Projects, or another page section.
+function initMarqueeVisibility() {
+  const marquees = Array.from(document.querySelectorAll(".marquee"));
+  if (!marquees.length || REDUCED) return;
+  if (!("IntersectionObserver" in window)) {
+    marquees.forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting));
+  }, { rootMargin: "80px" });
+  marquees.forEach((el) => observer.observe(el));
 }
 
 function scheduleMeteor(root) {
@@ -941,6 +950,7 @@ function boot() {
   initDescent();
   initScrollProgress();
   initStarfield();
+  initMarqueeVisibility();
   initClock();
   // The Projects section is one 3D scene now (js/system-scene.js, mounted
   // from index.html's module script) with no DOM objects to stagger in, so

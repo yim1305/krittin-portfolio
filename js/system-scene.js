@@ -174,12 +174,9 @@ const CRANE_SCALE = 0.72; // lander ~76px across
 const TERRAGATOR_SCALE = 0.896; // 2x
 const NAVIGATOR_SCALE = 0.582; // 1.3x
 
-// Bake resolution for both equirectangular surface textures. Half the hero's
-// 2048 on purpose: this whole scene mounts lazily and bakes twice, and a
-// 2048 pair is a visible hitch on an integrated GPU the moment you scroll
-// into Projects. Raise it if the surfaces read soft on a large display —
-// it is a one-off cost, not a per-frame one.
-const BAKE_W = 1024;
+// The scene bakes both Earth and Moon on approach. 768 is sufficient for the
+// posterised surfaces; high-density laptops step down further at init time.
+const BAKE_W = 768;
 
 // --------------------------------------------------------------------------
 // Layout presets, widest first. `min` is the canvas aspect (w/h) at or above
@@ -699,6 +696,7 @@ function buildClouds(surfaceTex, radius) {
 
       void main(){
         float a = texture2D(uSurface, vUv).a;
+        if (a < 0.01) discard;
         float day = step(0.0, dot(normalize(vWorldN), normalize(uLight)));
         gl_FragColor = vec4(vec3(0.980, 0.980, 0.980), a * 0.17 * (0.25 + 0.75 * day) * uFade);
       }
@@ -752,17 +750,23 @@ function buildGraticule(radius, gridOpacity, equatorOpacity) {
   // sliver that happens to sit directly behind the busiest object in the
   // scene. 8 x 6 keeps the equator (an even `parallels` puts a circle at
   // phi = 0) and drops a third of the curves.
-  const SEG = 128;
+  const SEG = 64;
+  const gridPoints = [];
+  const addLoop = (points) => {
+    for (let i = 0; i < points.length - 1; i++) gridPoints.push(points[i], points[i + 1]);
+  };
   const meridians = 8;
   for (let i = 0; i < meridians; i++) {
     const pts = [];
+    const yaw = (i / meridians) * Math.PI;
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
     for (let a = 0; a <= SEG; a++) {
       const t = (a / SEG) * Math.PI * 2;
-      pts.push(new THREE.Vector3(radius * Math.sin(t), radius * Math.cos(t), 0));
+      const x = radius * Math.sin(t);
+      pts.push(new THREE.Vector3(x * cy, radius * Math.cos(t), -x * sy));
     }
-    const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat);
-    line.rotation.y = (i / meridians) * Math.PI;
-    group.add(line);
+    addLoop(pts);
   }
 
   const parallels = 6;
@@ -775,8 +779,9 @@ function buildGraticule(radius, gridOpacity, equatorOpacity) {
       const t = (a / SEG) * Math.PI * 2;
       pts.push(new THREE.Vector3(r * Math.cos(t), y, r * Math.sin(t)));
     }
-    group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+    addLoop(pts);
   }
+  group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), gridMat));
 
   if (equatorOpacity > 0) {
     const equatorMat = fadeable(
@@ -1551,7 +1556,17 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(CAM_FOV, 1, 0.1, 100);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const highDensityDesktop =
+    window.innerWidth > 900 &&
+    (window.devicePixelRatio || 1) > 1.25 &&
+    window.matchMedia("(pointer: fine)").matches;
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: highDensityDesktop ? "high-performance" : "default",
+  });
   // Capped at 1.6 rather than the usual 2. The canvas is 68% taller than the
   // section it sits in (see the spill note in resize()), so at DPR 2 this
   // would be pushing roughly 6.8M pixels a frame on a 1440-wide laptop, every
@@ -1560,12 +1575,14 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // not visible on a body made of flat posterised bands.
   // Cap framebuffer area as well as DPR. High-density laptop panels otherwise
   // render several times more pixels than the same laptop's HDMI monitor.
+  const maxRenderPixels = highDensityDesktop ? 1600000 : 2400000;
   const pixelRatioFor = (w, h) =>
-    Math.max(1, Math.min(window.devicePixelRatio || 1, 1.6, Math.sqrt(2400000 / Math.max(1, w * h))));
+    Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.6, Math.sqrt(maxRenderPixels / Math.max(1, w * h))));
   renderer.setPixelRatio(pixelRatioFor(canvas.clientWidth, canvas.clientHeight));
 
-  const earthTex = bakeEquirect(renderer, BAKE_W, EARTH_BAKE_GLSL);
-  const moonTex = bakeEquirect(renderer, BAKE_W, MOON_BAKE_GLSL);
+  const bakeWidth = highDensityDesktop ? 512 : BAKE_W;
+  const earthTex = bakeEquirect(renderer, bakeWidth, EARTH_BAKE_GLSL);
+  const moonTex = bakeEquirect(renderer, bakeWidth, MOON_BAKE_GLSL);
 
   // ---- Earth -------------------------------------------------------------
   // Three nested groups, each with exactly one job — which is what makes the
@@ -2714,31 +2731,38 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // Three things want frames, at three different rates, and the loop switches
   // between them rather than running everything at the fastest:
   //
-  //   - the ARRIVAL, once, unthrottled: it is short and wants to be smooth;
-  //   - HOVER transitions, unthrottled while easing, for the same reason —
-  //     a pop that arrives at 24fps reads as a stutter, not a pop;
+  //   - the ARRIVAL and HOVER transitions, capped at ACTIVE_FPS;
   //   - the AMBIENT drift, forever, throttled to DRIFT_FPS: Earth's cloud
   //     shell, the only thing in the scene that still moves on its own. It
-  //     turns at a fraction of a degree a second, so nobody can tell 24 frames
-  //     from 60, and this is a second WebGL context on a page that already
+  //     turns at a fraction of a degree a second, so 12 frames is ample, and
+  //     this is a second WebGL context on a page that already
   //     runs a full-screen scene.
   //
   // On top of that the loop runs ONLY while Projects is on screen and stops on
   // tab-hide, and under prefers-reduced-motion everything is placed at its
   // resting state and the loop stops for good.
   const INTRO_MS = 2200;
-  const DRIFT_FPS = 24;
+  const ACTIVE_FPS = 45;
+  const ACTIVE_INTERVAL = 1000 / ACTIVE_FPS;
+  const DRIFT_FPS = 12;
   const DRIFT_INTERVAL = 1000 / DRIFT_FPS;
   const CLOUD_SPEED = 0.011; // radians per second
 
   let introStart = null;
   let introDone = REDUCED;
   let frame = null;
+  let lastActive = 0;
   let lastDraw = 0;
   let visible = false;
 
   function tick(now) {
     frame = requestAnimationFrame(tick);
+
+    // Arrival and hover easing do not need to follow a 90/144/165 Hz panel.
+    // A bounded active cadence saves the second WebGL context from redrawing
+    // more often than the motion can communicate.
+    if (lastActive && now - lastActive < ACTIVE_INTERVAL * 0.9) return;
+    lastActive = now;
 
     if (!introDone) {
       if (introStart === null) introStart = now;
@@ -2762,9 +2786,8 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     }
 
     updateHover();
-    // Hover easing has to be evaluated every frame while it is running, even
-    // if the cloud throttle would skip the draw — otherwise the pop advances
-    // in 24fps steps and reads as a stutter.
+    // Hover easing is evaluated at the active cadence while it is running,
+    // even if the slower cloud throttle would otherwise skip the draw.
     const hoverBusy = updateHoverEasing();
 
     if (!hoverBusy && now - lastDraw < DRIFT_INTERVAL) return;
