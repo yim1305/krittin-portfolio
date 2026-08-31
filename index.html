@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -17,14 +17,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260830">
+  <link rel="stylesheet" href="css/style.css?v=20260830d">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260830"></script>
+  <script src="js/main.js?v=20260830d"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -707,8 +707,8 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initOrbitScene } from "./js/orbit-scene.js?v=20260830";
-    import { initSystemScene } from "./js/system-scene.js?v=20260830";
+    import { initOrbitScene } from "./js/orbit-scene.js?v=20260830d";
+    import { initSystemScene } from "./js/system-scene.js?v=20260830d";
 
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface

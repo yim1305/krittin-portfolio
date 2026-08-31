@@ -607,6 +607,19 @@ const MOON_BAKE_GLSL = /* glsl */ `
 // The light DIRECTION is shared with the hero globe so all three bodies on
 // the site are lit consistently — there is still no actual light anywhere.
 // --------------------------------------------------------------------------
+// buildBody() and buildClouds() below both just need vUv/vWorldN for their
+// fragment shader, so they share this pass-through vertex shader rather than
+// each carrying their own identical copy.
+const SURFACE_VERTEX_GLSL = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vWorldN;
+  void main(){
+    vUv = uv;
+    vWorldN = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
 function buildBody(surfaceTex, radius, segments, rim, ambient) {
   const uniforms = {
     uSurface: { value: surfaceTex },
@@ -619,15 +632,7 @@ function buildBody(surfaceTex, radius, segments, rim, ambient) {
   const material = new THREE.ShaderMaterial({
     uniforms,
     transparent: true,
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      varying vec3 vWorldN;
-      void main(){
-        vUv = uv;
-        vWorldN = normalize(mat3(modelMatrix) * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
+    vertexShader: SURFACE_VERTEX_GLSL,
     fragmentShader: /* glsl */ `
       uniform sampler2D uSurface;
       uniform vec3 uLight;
@@ -684,15 +689,7 @@ function buildClouds(surfaceTex, radius) {
     uniforms,
     transparent: true,
     depthWrite: false,
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      varying vec3 vWorldN;
-      void main(){
-        vUv = uv;
-        vWorldN = normalize(mat3(modelMatrix) * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
+    vertexShader: SURFACE_VERTEX_GLSL,
     fragmentShader: /* glsl */ `
       uniform sampler2D uSurface;
       uniform vec3 uLight;
@@ -2522,6 +2519,11 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // shaders carry their own uFade uniform instead; everything else recorded
   // its resting opacity in userData when it was built.
   function applyFade(e) {
+    // The intro tween calls this every frame from p=0 to p=1, but STAGE.fade
+    // saturates at p=0.42 — for the rest of the intro this was re-walking the
+    // whole scene graph every frame to set every material's opacity to the
+    // value it's already at.
+    if (e === fade) return;
     fade = e;
     scene.traverse((o) => {
       const m = o.material;
@@ -2568,34 +2570,48 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     return [body.x + dx * k, body.y + dy * k];
   }
 
+  function updateLabelPositions() {
+    if (!labelLayer) return;
+    // Fractions of the canvas, not fixed pixels: the composition rescales
+    // with the canvas, so a fixed-px offset that clears Earth's limb on a
+    // laptop lands back on the ocean on a large display. The width term caps
+    // it on a narrow canvas, where a height-derived offset would fling
+    // labels off the side.
+    const unit = Math.min(viewDesignH || viewH, viewW * 0.55);
+    PROJECTS.forEach((p) => {
+      if (!p.el) return;
+      p.object.getWorldPosition(labelPos).project(camera);
+      const ax = (labelPos.x * 0.5 + 0.5) * viewW;
+      const ay = (-(labelPos.y * 0.5) + 0.5) * viewH;
+      let x = ax + p.dx * unit;
+      let y = ay + p.dy * unit;
+      if (p.avoidEarth) [x, y] = clearBody(x, y, earthScreen);
+      if (p.avoidMoon) [x, y] = clearBody(x, y, moonScreen);
+      // Clamped to the SECTION-visible box, not the whole canvas: the canvas
+      // now runs on past the section (see the spill note in resize()), and a
+      // label placed down there would sit over the Awards cards.
+      x = clamp(x, EDGE_PAD, viewW - EDGE_PAD);
+      y = clamp(y, EDGE_PAD, (viewDesignH || viewH) - EDGE_PAD);
+      p.el.style.transform = `${ALIGN[p.align]} translate(${x}px, ${y}px)`;
+    });
+  }
+
   function render() {
     if (!viewW || !viewH) return;
+    updateLabelPositions();
+    renderer.render(scene, camera);
+  }
 
-    if (labelLayer) {
-      // Fractions of the canvas, not fixed pixels: the composition rescales
-      // with the canvas, so a fixed-px offset that clears Earth's limb on a
-      // laptop lands back on the ocean on a large display. The width term caps
-      // it on a narrow canvas, where a height-derived offset would fling
-      // labels off the side.
-      const unit = Math.min(viewDesignH || viewH, viewW * 0.55);
-      PROJECTS.forEach((p) => {
-        if (!p.el) return;
-        p.object.getWorldPosition(labelPos).project(camera);
-        const ax = (labelPos.x * 0.5 + 0.5) * viewW;
-        const ay = (-(labelPos.y * 0.5) + 0.5) * viewH;
-        let x = ax + p.dx * unit;
-        let y = ay + p.dy * unit;
-        if (p.avoidEarth) [x, y] = clearBody(x, y, earthScreen);
-        if (p.avoidMoon) [x, y] = clearBody(x, y, moonScreen);
-        // Clamped to the SECTION-visible box, not the whole canvas: the canvas
-        // now runs on past the section (see the spill note in resize()), and a
-        // label placed down there would sit over the Awards cards.
-        x = clamp(x, EDGE_PAD, viewW - EDGE_PAD);
-        y = clamp(y, EDGE_PAD, (viewDesignH || viewH) - EDGE_PAD);
-        p.el.style.transform = `${ALIGN[p.align]} translate(${x}px, ${y}px)`;
-      });
-    }
-
+  // Post-arrival, nothing PROJECTS' labels are anchored to ever moves again
+  // (same fact updateInfoPanel's own comment relies on) — updateLabelPositions()'s
+  // only inputs (viewW/viewH/earthScreen/moonScreen, the camera) are otherwise
+  // constant until the next resize, which calls render() (and so
+  // updateLabelPositions()) itself. So the steady-state loop below — throttled
+  // to DRIFT_FPS forever just to spin Earth's cloud shell — only needs to
+  // redraw, not re-walk and re-transform all 6 labels on every one of those
+  // frames for values that haven't changed since the last one.
+  function renderFrame() {
+    if (!viewW || !viewH) return;
     renderer.render(scene, camera);
   }
 
@@ -2664,14 +2680,9 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
   // Parked state, used under reduced motion and as the resting state a resize
   // has to restore (a preset change rebuilds the flight curves underneath the
   // rockets, so their positions have to be re-derived from the new ones).
-  function applySettled() {
-    earthSpin.rotation.y = EARTH_YAW;
-    moonSpin.rotation.y = 0;
-    cmgSat.position.copy(cmgHome);
-    placeRobot(1);
-    park(terragatorRocket, outbound, TERRAGATOR_T, TERRAGATOR_ROLL);
-    park(navigatorRocket, homebound, NAVIGATOR_T, NAVIGATOR_ROLL);
-  }
+  // Every STAGE range's `to` is <= 1, so applyIntro(1) resolves every stage()
+  // call to exactly 1 and lands on the same values this used to set by hand.
+  const applySettled = () => applyIntro(1);
 
   resize();
   // resize() bails without touching the layout if the canvas has no size yet
@@ -2754,7 +2765,7 @@ export function initSystemScene({ canvas, labelLayer, infoPanel }) {
     if (!hoverBusy && now - lastDraw < DRIFT_INTERVAL) return;
     lastDraw = now;
     ambient(now);
-    render();
+    renderFrame();
   }
 
   // Everything that moves on its own, driven off the same clock. `now` is the

@@ -50,31 +50,25 @@ function smoothScrollTo(target) {
   const start = performance.now();
   if (scrollAnim) cancelAnimationFrame(scrollAnim);
 
-  // Any real scroll input from the user wins immediately.
+  // Any real scroll input from the user wins immediately. One controller for
+  // all three listeners means a single `abort()` unhooks all of them, rather
+  // than each exit path having to remove three listeners by hand.
   let cancelled = false;
-  const abort = () => { cancelled = true; };
-  window.addEventListener("wheel", abort, { passive: true, once: true });
-  window.addEventListener("touchstart", abort, { passive: true, once: true });
-  window.addEventListener("keydown", abort, { once: true });
-
-  // Both exit paths have to unhook, not just the one that runs to completion.
-  // `once` only removes a listener that actually fired, so a cancelled scroll
-  // used to leave the other two armed, and they accumulated one set per jump.
-  function release() {
-    window.removeEventListener("wheel", abort);
-    window.removeEventListener("touchstart", abort);
-    window.removeEventListener("keydown", abort);
-  }
+  const ac = new AbortController();
+  const cancel = () => { cancelled = true; };
+  window.addEventListener("wheel", cancel, { passive: true, once: true, signal: ac.signal });
+  window.addEventListener("touchstart", cancel, { passive: true, once: true, signal: ac.signal });
+  window.addEventListener("keydown", cancel, { once: true, signal: ac.signal });
 
   function step(now) {
-    if (cancelled) { scrollAnim = null; release(); return; }
+    if (cancelled) { scrollAnim = null; ac.abort(); return; }
     const p = Math.min((now - start) / duration, 1);
     window.scrollTo(0, from + delta * easeInOutCubic(p));
     if (p < 1) {
       scrollAnim = requestAnimationFrame(step);
     } else {
       scrollAnim = null;
-      release();
+      ac.abort();
     }
   }
   scrollAnim = requestAnimationFrame(step);
@@ -356,6 +350,26 @@ const STACK_BREAKPOINT = 900;
 // backdrop would crowd it.
 const PROJECT_SKY = 0.8;
 
+// Shared by initDescent and initScrollProgress: both re-measure on resize/load/
+// font-swap, and both want at most one rAF-queued `update` per scroll burst
+// rather than one per scroll event. `measure` recomputes cached layout numbers;
+// `update` writes styles from them (and is also what the scroll listener calls
+// directly, skipping `measure` since scrolling alone doesn't change layout).
+function wireRemeasure(measure, update) {
+  let queued = false;
+  window.addEventListener("scroll", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; update(); });
+  }, { passive: true });
+
+  const remeasure = () => { measure(); update(); };
+  window.addEventListener("resize", remeasure);
+  window.addEventListener("load", remeasure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+  remeasure();
+}
+
 function initDescent() {
   const root = document.documentElement;
   const hero = document.getElementById("home");
@@ -368,8 +382,6 @@ function initDescent() {
     root.style.setProperty("--sky-color", "0");
     return;
   }
-
-  let queued = false;
 
   // Measured on resize/load rather than inside the scroll handler. offsetHeight
   // and getBoundingClientRect force a synchronous layout, and this runs in a
@@ -402,7 +414,6 @@ function initDescent() {
   }
 
   function update() {
-    queued = false;
     const y = window.scrollY;
 
     // Runs over the hero's own height, and ends at the horizon — there is no
@@ -452,21 +463,12 @@ function initDescent() {
     root.style.setProperty("--sky-color", Math.max(heroSky, projSky).toFixed(4));
   }
 
-  const remeasure = () => { measure(); update(); };
-
-  window.addEventListener("scroll", () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(update);
-  }, { passive: true });
-  window.addEventListener("resize", remeasure);
-  // Also after load: a fragment navigation (arriving at index.html#projects
-  // from a project page) applies its scroll after DOMContentLoaded, and the
-  // first update would otherwise have measured the top of the document. Fonts
-  // matter too — the sections reflow when JetBrains Mono swaps in.
-  window.addEventListener("load", remeasure);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
-  remeasure();
+  // Also re-measures after load: a fragment navigation (arriving at
+  // index.html#projects from a project page) applies its scroll after
+  // DOMContentLoaded, and the first update would otherwise have measured the
+  // top of the document. Fonts matter too — the sections reflow when
+  // JetBrains Mono swaps in.
+  wireRemeasure(measure, update);
 }
 
 // --------------------------------------------------------------------------
@@ -476,7 +478,6 @@ function initScrollProgress() {
   const bar = document.getElementById("scroll-progress");
   if (!bar) return;
 
-  let queued = false;
   // Cached for the same reason as the descent's measurements: scrollHeight is
   // a layout read, and this handler writes a style straight after it.
   let max = 0;
@@ -485,21 +486,11 @@ function initScrollProgress() {
     max = document.documentElement.scrollHeight - window.innerHeight;
   }
   function update() {
-    queued = false;
     const p = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
     bar.style.width = (p * 100).toFixed(2) + "%";
   }
 
-  const remeasure = () => { measure(); update(); };
-  window.addEventListener("scroll", () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(update);
-  }, { passive: true });
-  window.addEventListener("resize", remeasure);
-  window.addEventListener("load", remeasure);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
-  remeasure();
+  wireRemeasure(measure, update);
 }
 
 // --------------------------------------------------------------------------
@@ -605,17 +596,37 @@ function initStarfield() {
   paint();
   if (REDUCED) return;
 
+  // requestAnimationFrame fires at the display's refresh rate, not a fixed
+  // 60Hz — Krittin: "everything is delayed" on his 144Hz laptop panel, and
+  // this loop was writing 3 background-position strings plus a transform on
+  // every single tick, uncapped. background-position forces a repaint (unlike
+  // transform/opacity, which are compositor-only), so at 144Hz this alone was
+  // 2.4x the paint work of a 60Hz screen, stacked on top of the hero's WebGL
+  // loop doing the same. The drift itself already reads real elapsed time
+  // (`secs`), so speed was never wrong — only how often it repainted. Capped
+  // to a 60fps baseline on purpose, per Krittin: "it has to work on weaker
+  // laptops as well" — this is the target frame budget, not just a ceiling
+  // for fast screens.
+  const FRAME_MS = 1000 / 60;
+  let lastFrame = 0;
   const t0 = performance.now();
   function frame(now) {
+    if (lastFrame && now - lastFrame < FRAME_MS * 0.9) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    lastFrame = now;
+
     const secs = (now - t0) / 1000;
     const sy = window.scrollY;
 
     live.clock = clock0 + secs;
     layers.forEach((l, i) => {
-      live.base[i] = {
-        x: base[i].x - secs * (l.drift / 10),
-        y: base[i].y - sy * l.depth + secs * (l.drift / 40),
-      };
+      // Mutated in place rather than replaced with a new object literal —
+      // this runs every frame for the life of the page, and the old object
+      // is thrown away immediately either way.
+      live.base[i].x = base[i].x - secs * (l.drift / 10);
+      live.base[i].y = base[i].y - sy * l.depth + secs * (l.drift / 40);
     });
     // Clamped: unlike the star layers this image does not tile, and the base
     // accumulates across every page visit in the session.
@@ -830,6 +841,22 @@ function initPageTransitions() {
     document.documentElement.dataset.vt = dir;
   }
 
+  // Tags the morphing card for one view transition, given the OTHER end's
+  // URL (the page being navigated to, on the way out; the page navigated
+  // from, on the way back in) — pageswap and pagereveal both need exactly
+  // this, just with a different URL and a different ViewTransition object.
+  function tagForTransition(url, viewTransition) {
+    if (!viewTransition) return;
+    const card = cardFor(url);
+    if (!card) return;
+    tag(card, true);
+    // `finished` REJECTS when the transition is skipped — a reload, or a
+    // navigation that gets interrupted. Untag either way, and handle the
+    // rejection so it doesn't surface as an unhandled AbortError.
+    const untag = () => tag(card, false);
+    viewTransition.finished.then(untag, untag);
+  }
+
   if (supported) {
     // Leaving: flag the direction and tag the card we're navigating into.
     window.addEventListener("pageswap", (e) => {
@@ -837,32 +864,14 @@ function initPageTransitions() {
       // coupled to whether a transition happens to be running.
       const to = e.activation && e.activation.entry && e.activation.entry.url;
       setDirection(location.href, to);
-      if (!e.viewTransition) return;
-
-      const card = cardFor(to);
-      if (!card) return;
-      tag(card, true);
-      // `finished` REJECTS when the transition is skipped — a reload, or a
-      // navigation that gets interrupted. Untag either way, and handle the
-      // rejection so it doesn't surface as an unhandled AbortError.
-      const untag = () => tag(card, false);
-      e.viewTransition.finished.then(untag, untag);
+      tagForTransition(to, e.viewTransition);
     });
 
     // Arriving: flag the direction and tag the card we came back from.
     window.addEventListener("pagereveal", (e) => {
       const from = window.navigation && navigation.activation && navigation.activation.from;
       setDirection(from && from.url, location.href);
-      if (!e.viewTransition) return;
-
-      const card = cardFor(from && from.url);
-      if (!card) return;
-      tag(card, true);
-      // `finished` REJECTS when the transition is skipped — a reload, or a
-      // navigation that gets interrupted. Untag either way, and handle the
-      // rejection so it doesn't surface as an unhandled AbortError.
-      const untag = () => tag(card, false);
-      e.viewTransition.finished.then(untag, untag);
+      tagForTransition(from && from.url, e.viewTransition);
     });
     return;
   }

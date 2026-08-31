@@ -207,27 +207,38 @@ function bakeSurfaceTexture(renderer, width = 2048) {
 }
 
 // --------------------------------------------------------------------------
-// Planet surface — cheap now: one texture fetch plus lighting.
+// Planet surface and cloud shell share this pass-through vertex shader (both
+// just need vUv/vWorldN for their fragment shader) and the same uSurface/
+// uLight/uFade uniform shape — hoisted once rather than written out twice.
 // --------------------------------------------------------------------------
-function buildPlanet(surfaceTex) {
-  const uniforms = {
+const SURFACE_VERTEX_GLSL = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vWorldN;
+  void main(){
+    vUv = uv;
+    vWorldN = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+function surfaceUniforms(surfaceTex) {
+  return {
     uSurface: { value: surfaceTex },
     uLight: { value: new THREE.Vector3(0.55, 0.42, 0.72).normalize() },
     uFade: { value: REDUCED ? 1 : 0 },
   };
+}
+
+// --------------------------------------------------------------------------
+// Planet surface — cheap now: one texture fetch plus lighting.
+// --------------------------------------------------------------------------
+function buildPlanet(surfaceTex) {
+  const uniforms = surfaceUniforms(surfaceTex);
 
   const material = new THREE.ShaderMaterial({
     uniforms,
     transparent: true,
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      varying vec3 vWorldN;
-      void main(){
-        vUv = uv;
-        vWorldN = normalize(mat3(modelMatrix) * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
+    vertexShader: SURFACE_VERTEX_GLSL,
     fragmentShader: /* glsl */ `
       uniform sampler2D uSurface;
       uniform vec3 uLight;
@@ -261,25 +272,13 @@ function buildPlanet(surfaceTex) {
 // its own UVs, so rotating it drifts the weather over the surface.
 // --------------------------------------------------------------------------
 function buildClouds(surfaceTex) {
-  const uniforms = {
-    uSurface: { value: surfaceTex },
-    uLight: { value: new THREE.Vector3(0.55, 0.42, 0.72).normalize() },
-    uFade: { value: REDUCED ? 1 : 0 },
-  };
+  const uniforms = surfaceUniforms(surfaceTex);
 
   const material = new THREE.ShaderMaterial({
     uniforms,
     transparent: true,
     depthWrite: false,
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      varying vec3 vWorldN;
-      void main(){
-        vUv = uv;
-        vWorldN = normalize(mat3(modelMatrix) * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
+    vertexShader: SURFACE_VERTEX_GLSL,
     fragmentShader: /* glsl */ `
       uniform sampler2D uSurface;
       uniform vec3 uLight;
@@ -566,8 +565,13 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   // instead of MAX_ORBIT_Y — cubesats get pushed off the top of the frame.
   // ~25° of elevation either way is enough to feel free without costing any
   // globe size (fitDistance is bound by the horizontal fit, not this).
-  controls.minPolarAngle = Math.PI * 0.36;
-  controls.maxPolarAngle = Math.PI * 0.64;
+  // Named (and hoisted here from where they used to be declared, further
+  // down) because applyDescent() eases the polar range back to these same
+  // resting bounds — one pair of constants, not the same two literals twice.
+  const REST_MIN_POLAR = Math.PI * 0.36;
+  const REST_MAX_POLAR = Math.PI * 0.64;
+  controls.minPolarAngle = REST_MIN_POLAR;
+  controls.maxPolarAngle = REST_MAX_POLAR;
   controls.autoRotate = !REDUCED;
   controls.autoRotateSpeed = 0.22;
 
@@ -620,6 +624,13 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   // Built once. The hover test raycasts against this every frame, and mapping
   // it there allocated a fresh array sixty times a second for no reason.
   const satMeshes = satellites.map((s) => s.mesh);
+
+  // O(1) hit -> satellite lookup for the raycast below, instead of re-walking
+  // every cubesat's ~10-node subtree (body, panels, edges, boom, dot) on every
+  // hovered frame. Keyed by each descendant's own numeric `.id`, which is what
+  // a raycast hit resolves to.
+  const satByObjectId = new Map();
+  satellites.forEach((s) => s.mesh.traverse((obj) => satByObjectId.set(obj.id, s)));
 
   function positionSatellite(sat, t) {
     const { radius, tilt, incl, speed, phase } = sat.cfg;
@@ -676,7 +687,15 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   }
 
   function satFromObject(obj) {
-    return satellites.find((s) => s.mesh === obj || s.mesh.getObjectById(obj.id));
+    return satByObjectId.get(obj.id) || null;
+  }
+
+  // Shared by the click handler and the per-frame hover test below — both
+  // just need "what satellite, if any, is under the pointer right now."
+  function raycastSat() {
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(satMeshes, true);
+    return hits.length ? satFromObject(hits[0].object) : null;
   }
 
   // Label widths only change when the font swaps in or the layout resizes,
@@ -713,12 +732,8 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     if (Math.hypot(dx, dy) > 6) return; // treat as a drag, not a click
 
     updatePointer(e);
-    raycaster.setFromCamera(pointerNDC, camera);
-    const hits = raycaster.intersectObjects(satMeshes, true);
-    if (hits.length) {
-      const sat = satFromObject(hits[0].object);
-      if (sat) onSelect && onSelect(sat.cfg.id);
-    }
+    const sat = raycastSat();
+    if (sat) onSelect && onSelect(sat.cfg.id);
   });
 
   let autoRotateResume = null;
@@ -765,8 +780,6 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
   // planet on screen. It has to stay in step with --horizon-band in
   // style.css, which is the matching space reserved at the foot of About.
   const HORIZON_Y = 0.70;
-  const REST_MIN_POLAR = Math.PI * 0.36;
-  const REST_MAX_POLAR = Math.PI * 0.64;
   let descent = 0; // hero -> About: down to the horizon, and that is the end of it
   let rise = 0;    // px the globe has ridden up past that, straight off the scroll
 
@@ -908,13 +921,35 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     ).observe(container);
   }
 
+  // requestAnimationFrame fires at the DISPLAY's refresh rate, not a fixed
+  // 60Hz — on a 90/120/144Hz panel (increasingly the default on laptop
+  // screens, even though an external monitor is very often still 60Hz) this
+  // loop was re-baking a full WebGL frame, re-running OrbitControls' damping,
+  // and re-raycasting the hover test 1.5-2.4x more often than on a 60Hz
+  // display, for no visual benefit — and `dt` below used to be hardcoded to
+  // 0.016s regardless of the real interval, so every orbit, spin and easing
+  // step ran that much FASTER too, not just more often. Both are fixed by
+  // measuring the real elapsed time and skipping the frame entirely once one
+  // has already landed within the last ~16ms.
+  const FRAME_MS = 1000 / 60;
+  let lastFrame = 0;
+
   function animate(now) {
     if (!onScreen) {
       requestAnimationFrame(animate);
       return;
     }
 
-    const dt = 0.016;
+    const elapsed = lastFrame ? now - lastFrame : FRAME_MS;
+    if (elapsed < FRAME_MS * 0.9) {
+      requestAnimationFrame(animate);
+      return;
+    }
+    lastFrame = now;
+
+    // Capped so a tab coming back from being backgrounded (or the debugger
+    // pausing) doesn't dump one giant catch-up step into the orbits.
+    const dt = Math.min(elapsed, 100) / 1000;
     t += dt;
 
     // Ease toward the scroll-driven target rather than tracking it directly:
@@ -965,9 +1000,7 @@ export function initOrbitScene({ canvas, labelLayer, onSelect, onTelemetry }) {
     // raycast per frame at most. Live at every scroll position, because the
     // cubesats stay clickable navigation all the way down.
     if (introDone && pointerInside && !pointerDownPos) {
-      raycaster.setFromCamera(pointerNDC, camera);
-      const hits = raycaster.intersectObjects(satMeshes, true);
-      const sat = hits.length ? satFromObject(hits[0].object) : null;
+      const sat = raycastSat();
       canvasHoverId = sat ? sat.cfg.id : null;
 
       // Label hit test against last frame's projected positions. One frame of

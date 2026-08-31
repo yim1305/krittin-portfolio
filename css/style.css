@@ -39,6 +39,15 @@
      the row the horizon lands on — currently 0.70 of the viewport, so roughly
      the bottom third is planet. Raise one, raise the other. */
   --horizon-band:32vh;
+
+  /* Sticky nav's own height — also read as NAV_H in js/main.js (kept as a
+     literal there since JS can't consume a CSS custom property for free).
+     One source of truth for the ~9 `calc(100vh - 64px)` sites below, instead
+     of the literal repeated at each one. */
+  --nav-h:64px;
+  /* The horizontal fade mask both marquee orientations use at their edges —
+     identical string, shared instead of repeated verbatim at each site. */
+  --mask-fade-h:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
 }
 
 *, *::before, *::after{ box-sizing:border-box; }
@@ -238,7 +247,7 @@ img, video{ max-width:100%; display:block; }
 .topnav{
   position:sticky; top:0; z-index:20;
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 40px; height:64px;
+  padding:0 40px; height:var(--nav-h);
   border-bottom:1px solid var(--ash);
   background:rgba(8,9,13,.82);
   backdrop-filter:blur(8px);
@@ -301,14 +310,14 @@ section{ position:relative; z-index:1; }
    centring becomes a no-op the moment it does. Nothing is ever clipped.
    About sets its own layout below; it has a horizon to leave room for. */
 .awards, .experience, .projects{
-  min-height:calc(100vh - 64px); /* the sticky nav owns the other 64px */
+  min-height:calc(100vh - var(--nav-h)); /* the sticky nav owns the other 64px */
   display:flex; flex-direction:column; justify-content:center;
 }
 .eyebrow{
   font-family:var(--mono); font-size:12px; letter-spacing:-.02em; text-transform:uppercase;
   color:var(--warm-granite); display:flex; align-items:center; gap:8px; margin-bottom:24px;
 }
-.eyebrow .dot{
+.eyebrow .dot, .hero-focus .dot{
   width:6px; height:6px; border-radius:50%; background:var(--orange); display:inline-block;
   animation:status-pulse 2.8s var(--ease) infinite;
 }
@@ -344,13 +353,13 @@ section{ position:relative; z-index:1; }
    way the scene covers exactly the visible area both before and after it
    sticks — which is also what makes HORIZON_Y in orbit-scene.js a fraction of
    the area the reader can actually see. */
-.hero-scene{ position:sticky; top:64px; height:calc(100vh - 64px); z-index:0; }
+.hero-scene{ position:sticky; top:var(--nav-h); height:calc(100vh - var(--nav-h)); z-index:0; }
 
 .hero{
-  display:flex; min-height:calc(100vh - 64px); align-items:stretch; position:relative;
+  display:flex; min-height:calc(100vh - var(--nav-h)); align-items:stretch; position:relative;
   /* Cancels the scene's flow height, so the hero starts at the top of .descent
      rather than a screen below it. */
-  margin-top:calc(-100vh + 64px);
+  margin-top:calc(-100vh + var(--nav-h));
 }
 
 /* The scene is a sibling behind both sections now rather than a child of the
@@ -405,10 +414,6 @@ section{ position:relative; z-index:1; }
   font-family:var(--mono); font-size:12px; letter-spacing:-.02em; text-transform:uppercase;
   color:var(--graphite); display:flex; align-items:center; gap:8px; margin-top:12px;
 }
-.hero-focus .dot{
-  width:6px; height:6px; border-radius:50%; background:var(--orange); display:inline-block;
-  animation:status-pulse 2.8s var(--ease) infinite;
-}
 
 /* live status strip — everything on it is computed, nothing is filler copy */
 .hero-status{
@@ -434,7 +439,8 @@ section{ position:relative; z-index:1; }
              color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
 .btn-dark{ background:#1f1d1c; color:var(--bone); padding:0 16px; border:1px solid transparent; cursor:pointer; }
-.btn-dark:hover{ background:#2a2725; transform:translateY(-1px); }
+/* Same dark-fill hover as .paper-btn (projects/*.html's "read the paper" CTA) */
+.btn-dark:hover, .paper-btn:hover{ background:#2a2725; transform:translateY(-1px); }
 .ghost-link{
   border:1px solid var(--ash); color:var(--pale-stone); padding:0 16px;
   background:none; cursor:pointer;
@@ -507,7 +513,7 @@ section{ position:relative; z-index:1; }
    spoken for — --horizon-band is the strip the globe's limb sits in, and the
    skills marquee is pushed down to ride just above it. */
 .about{
-  min-height:calc(100vh - 64px);
+  min-height:calc(100vh - var(--nav-h));
   display:flex; flex-direction:column;
   padding:56px 0 var(--horizon-band);
 }
@@ -722,7 +728,7 @@ section{ position:relative; z-index:1; }
    pinning it there would clip the index. */
 @media (min-width: 901px){
   .projects{
-    height:calc(100vh - 64px); max-height:calc(100vh - 64px); padding:32px 0 24px;
+    height:calc(100vh - var(--nav-h)); max-height:calc(100vh - var(--nav-h)); padding:32px 0 24px;
     /* overflow VISIBLE, deliberately, despite the hard height above. Earth is
        drawn whole and its lower half carries on past this section into Awards
        — Krittin: "the earth make it full (stay same place) the rest of the
@@ -1208,8 +1214,8 @@ section{ position:relative; z-index:1; }
 .marquee{
   overflow:hidden; padding:24px 0;
   /* fade the tags out at both edges so they don't get sliced by the viewport */
-  -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
-          mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  -webkit-mask-image:var(--mask-fade-h);
+          mask-image:var(--mask-fade-h);
 }
 .marquee-track{
   display:flex; gap:16px; width:max-content;
@@ -1269,10 +1275,13 @@ section{ position:relative; z-index:1; }
    column no longer carries its own paper row (see the research template). */
 .detail-cta{ display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
 .detail-media{ max-width:1200px; margin:40px auto 0; padding:0 40px; }
-.detail-media-inner{
-  position:relative; min-height:320px; max-height:520px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
+.detail-media-inner, .detail-figure-media{
+  background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
   font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
+}
+.detail-media-inner{
+  position:relative; min-height:320px; max-height:520px;
   view-transition-name:proj-media;
 }
 .detail-media-inner img, .detail-media-inner video, .detail-media-inner canvas{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -1329,7 +1338,6 @@ section{ position:relative; z-index:1; }
   font-family:var(--sans); font-size:14px; padding:0 16px; height:40px; border-radius:3px; margin-top:4px;
   transition:background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.paper-btn:hover{ background:#2a2725; transform:translateY(-1px); }
 .desc{ font-size:16px; line-height:1.65; color:var(--pale-stone); }
 .desc p{ margin:0 0 20px; }
 .desc h3{ font-family:var(--mono); font-size:12px; text-transform:uppercase; color:var(--warm-granite); margin:32px 0 12px; padding-top:24px; border-top:1px solid var(--ash); }
@@ -1354,11 +1362,7 @@ section{ position:relative; z-index:1; }
    `.detail-figure-media` repeats `.detail-media-inner`'s box exactly, minus
    that transition name (a second element can't carry the same one). */
 .desc .detail-figure{ margin:40px 0; }
-.detail-figure-media{
-  min-height:220px; max-height:440px; background:var(--carbon); border:1px solid var(--ash); border-radius:10px;
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
-  font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--graphite);
-}
+.detail-figure-media{ min-height:220px; max-height:440px; }
 .detail-figure-media img, .detail-figure-media video{ width:100%; height:100%; object-fit:cover; }
 /* Anything with information at the edges — a plot's axis labels, a
    diagram's boxes, a log screenshot's last line — can't take the same
@@ -1478,14 +1482,14 @@ footer{
      with the hero's compensating negative margin removed. orbit-scene.js pins
      the descent at 0 below this same breakpoint and pans the globe down into
      the lower block so it stays out from behind the name. */
-  .hero{ flex-direction:column; min-height:calc(100vh - 64px); margin-top:0; }
+  .hero{ flex-direction:column; min-height:calc(100vh - var(--nav-h)); margin-top:0; }
   .hero-left{ flex:0 0 auto; width:100%; padding:72px 24px 32px; }
   .hero-left::before{ display:none; }
   .hero-right{ flex:1 1 auto; width:100%; height:auto; min-height:0; }
   /* left/right are load-bearing: switching from sticky to absolute drops the
      block-level auto width and the box would shrink to fit, taking the canvas
      (which is inset:0 against it) to zero. */
-  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - 64px); }
+  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - var(--nav-h)); }
   .telemetry{ left:20px; bottom:18px; }
   .drag-hint{ right:20px; bottom:18px; }
   .about, .awards, .experience, .projects{ padding:80px 0; }
@@ -1499,8 +1503,8 @@ footer{
      the horizontal band, reusing the original keyframes. */
   .marquee-v{
     height:auto; padding:24px 0;
-    -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
-            mask-image:linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+    -webkit-mask-image:var(--mask-fade-h);
+            mask-image:var(--mask-fade-h);
   }
   .marquee-v .marquee-track{
     flex-direction:row; align-items:center; width:max-content; height:auto;
@@ -1613,8 +1617,7 @@ footer{
   .marquee-track, .marquee-v .marquee-track{ animation:none; }
   .star-near{ animation:none; }
   .nebula{ transform:none; }
-  .eyebrow .dot{ animation:none; }
-  .hero-focus .dot{ animation:none; }
+  .eyebrow .dot, .hero-focus .dot{ animation:none; }
   .hero-name .cursor, .proj-index .cursor{ animation:none; }
   .hero-left::before{ animation:none; height:58%; }
   .telemetry, .drag-hint{ animation:none; opacity:1; }
@@ -1624,7 +1627,7 @@ footer{
      the hero's, with the hero's compensating negative margin removed — so the
      globe never ends up sitting behind the About copy. orbit-scene.js pins the
      descent at 0 under the same preference. */
-  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - 64px); }
+  .hero-scene{ position:absolute; top:0; left:0; right:0; height:calc(100vh - var(--nav-h)); }
   .hero{ margin-top:0; }
   .hero-left{ opacity:1; transform:none; }
   .hint-wrap{ opacity:1; }
