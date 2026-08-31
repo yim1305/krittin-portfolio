@@ -46,7 +46,7 @@ function smoothScrollTo(target) {
   }
 
   // Longer trips get a longer ride, but never a sluggish one.
-  const duration = Math.min(1150, Math.max(620, Math.abs(delta) * 0.55));
+  const duration = Math.min(800, Math.max(420, Math.abs(delta) * 0.38));
   const start = performance.now();
   if (scrollAnim) cancelAnimationFrame(scrollAnim);
 
@@ -494,8 +494,10 @@ function initScrollProgress() {
 }
 
 // --------------------------------------------------------------------------
-// Starfield: slow drift + scroll parallax, driven through background-position
-// so the tiling stays seamless no matter how far it travels.
+// Starfield: slow drift + bounded scroll parallax. Only compositor transforms
+// are written here. Updating background-position on these oversized,
+// multi-gradient layers forced Chromium to repaint millions of pixels per
+// frame on high-density laptop panels.
 // --------------------------------------------------------------------------
 function initStarfield() {
   const root = document.getElementById("stars");
@@ -509,12 +511,9 @@ function initStarfield() {
   }));
 
   // ---- continuity across navigations ----
-  // Scroll position resets to 0 on a new page, so deriving the backdrop
-  // offset from scrollY alone would snap it back. Instead each layer keeps a
-  // base offset that is handed to the next page through sessionStorage, and
-  // the new page's scroll parallax is applied on top of it. The drift clock
-  // is carried too, so the slow motion continues where it left off rather
-  // than restarting.
+  // Scroll resets on a new page, so the bounded parallax offset is carried
+  // through sessionStorage. The shared clock also preserves every layer's
+  // oscillation phase through cross-document view transitions.
   const KEY = "krj-backdrop";
   let saved = null;
   try {
@@ -523,20 +522,35 @@ function initStarfield() {
     saved = null; // private mode, or someone put junk in the key
   }
 
-  const base =
-    saved && Array.isArray(saved.base) && saved.base.length === layers.length
-      ? saved.base
-      : layers.map(() => ({ x: 0, y: 0 }));
-  let nebBase = saved && typeof saved.nebY === "number" ? saved.nebY : 0;
+  const baseStarY =
+    saved && Array.isArray(saved.starY) && saved.starY.length === layers.length
+      ? saved.starY
+      : layers.map(() => 0);
+  const nebBase = saved && typeof saved.nebY === "number" ? saved.nebY : 0;
   const clock0 = saved && typeof saved.clock === "number" ? saved.clock : 0;
 
   // Live values, kept here so pagehide can persist exactly what is on screen.
-  const live = { base: base.map((b) => ({ ...b })), nebY: nebBase, clock: clock0 };
+  const live = { starY: [...baseStarY], nebY: nebBase, clock: clock0 };
 
   function paint() {
     layers.forEach((l, i) => {
-      l.el.style.backgroundPosition =
-        live.base[i].x.toFixed(1) + "px " + live.base[i].y.toFixed(1) + "px";
+      if (REDUCED) {
+        l.el.style.transform = "none";
+        return;
+      }
+
+      // Match the old drift speed with long, bounded oscillations. Keeping
+      // each layer inside its overscan lets Chromium reuse a composited layer
+      // instead of rasterizing its radial gradients again on every update.
+      const phase = i * 2.17;
+      const xAmp = 24 - i * 4;
+      const yAmp = 14 + i * 3;
+      const xRate = (l.drift / 10) / xAmp;
+      const yRate = (l.drift / 40) / yAmp;
+      const dx = Math.sin(live.clock * xRate + phase) * xAmp;
+      const dy = Math.cos(live.clock * yRate + phase * 0.7) * yAmp + live.starY[i];
+      l.el.style.transform =
+        "translate3d(" + dx.toFixed(1) + "px," + dy.toFixed(1) + "px,0)";
     });
     // REDUCED: leave the inline transform unset so .nebula's own
     // `transform:none` (under prefers-reduced-motion in style.css) applies —
@@ -582,7 +596,7 @@ function initStarfield() {
 
   function persist() {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify({ base: live.base, nebY: live.nebY, clock: live.clock }));
+      sessionStorage.setItem(KEY, JSON.stringify({ starY: live.starY, nebY: live.nebY, clock: live.clock }));
     } catch (e) {
       /* storage unavailable — the backdrop just restarts, nothing breaks */
     }
@@ -596,20 +610,9 @@ function initStarfield() {
   paint();
   if (REDUCED) return;
 
-  // requestAnimationFrame fires at the display's refresh rate, not a fixed
-  // 60Hz — Krittin: "everything is delayed" on his 144Hz laptop panel, and
-  // this loop was writing 3 background-position strings plus a transform on
-  // every single tick, uncapped. background-position forces a repaint (unlike
-  // transform/opacity, which are compositor-only), so at 144Hz this alone was
-  // 2.4x the paint work of a 60Hz screen, stacked on top of the hero's WebGL
-  // loop doing the same. The drift itself already reads real elapsed time
-  // (`secs`), so speed was never wrong — only how often it repainted. Capped
-  // to a 60fps baseline on purpose, per Krittin: "it has to work on weaker
-  // laptops as well" — this is the target frame budget, not just a ceiling
-  // for fast screens.
-  // These frames only move decorative backdrop pixels. 24 Hz still reads as
-  // continuous at the very slow drift speeds, while halving three large
-  // gradient repaints and leaving more of each frame for smooth page scroll.
+  // These are compositor-only writes now. The drift is slow enough that 24
+  // updates per second still looks continuous without doing needless work on
+  // high-refresh displays.
   const FRAME_MS = 1000 / 24;
   let lastFrame = 0;
   const t0 = performance.now();
@@ -625,11 +628,9 @@ function initStarfield() {
 
     live.clock = clock0 + secs;
     layers.forEach((l, i) => {
-      // Mutated in place rather than replaced with a new object literal —
-      // this runs every frame for the life of the page, and the old object
-      // is thrown away immediately either way.
-      live.base[i].x = base[i].x - secs * (l.drift / 10);
-      live.base[i].y = base[i].y - sy * l.depth + secs * (l.drift / 40);
+      // Bounded to the layer's overscan, unlike the old unbounded background
+      // offset. Mutating in place avoids short-lived arrays in this loop.
+      live.starY[i] = Math.max(-52, Math.min(52, baseStarY[i] - sy * l.depth * 0.06));
     });
     // Clamped: unlike the star layers this image does not tile, and the base
     // accumulates across every page visit in the session.
@@ -895,7 +896,7 @@ function initPageTransitions() {
     e.preventDefault();
     document.body.style.transition = "opacity .2s var(--ease)";
     document.body.style.opacity = "0";
-    setTimeout(() => { location.href = a.href; }, 190);
+    setTimeout(() => { location.href = a.href; }, 120);
   });
 }
 

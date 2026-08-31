@@ -115,7 +115,7 @@ const NOISE_GLSL = /* glsl */ `
 // The direction reconstruction below mirrors THREE.SphereGeometry's own UV
 // convention exactly, so the bake lines up with the mesh with no seam.
 // --------------------------------------------------------------------------
-function bakeSurfaceTexture(renderer, width = 2048) {
+function bakeSurfaceTexture(renderer, width = 1024) {
   const height = width / 2;
 
   const target = new THREE.WebGLRenderTarget(width, height, {

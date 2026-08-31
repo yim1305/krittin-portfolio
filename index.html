@@ -17,14 +17,14 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260831b">
+  <link rel="stylesheet" href="css/style.css?v=20260831c">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js?v=20260831b"></script>
+  <script src="js/main.js?v=20260831c"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -32,7 +32,7 @@
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
       "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
     }
   }
@@ -707,8 +707,7 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initOrbitScene } from "./js/orbit-scene.js?v=20260831b";
-    import { initSystemScene } from "./js/system-scene.js?v=20260831a";
+    import { initOrbitScene } from "./js/orbit-scene.js?v=20260831c";
 
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface
@@ -722,26 +721,38 @@
     // more), just at a taller portrait framing the scene picks for itself.
     const systemCanvas = document.getElementById("system-canvas");
     if (systemCanvas) {
-      const mountSystem = () =>
-        initSystemScene({
-          canvas: systemCanvas,
-          labelLayer: document.getElementById("system-labels"),
-          infoPanel: document.getElementById("proj-info"),
-        });
+      let systemMounted = false;
+      const mountSystem = async () => {
+        if (systemMounted) return;
+        systemMounted = true;
+        try {
+          // A real dynamic import: the 135 KB scene and its Three.js add-ons
+          // are neither downloaded nor parsed until Projects approaches.
+          const { initSystemScene } = await import("./js/system-scene.js?v=20260831c");
+          initSystemScene({
+            canvas: systemCanvas,
+            labelLayer: document.getElementById("system-labels"),
+            infoPanel: document.getElementById("proj-info"),
+          });
+        } catch (error) {
+          systemMounted = false;
+          console.error("Could not load the Projects scene", error);
+        }
+      };
       if ("IntersectionObserver" in window) {
         const io = new IntersectionObserver(
           (entries) => {
             entries.forEach((e) => {
               if (!e.isIntersecting) return;
               io.disconnect();
-              mountSystem();
+              void mountSystem();
             });
           },
-          { rootMargin: "300px" }
+          { rootMargin: "700px" }
         );
         io.observe(systemCanvas);
       } else {
-        mountSystem();
+        void mountSystem();
       }
     }
 

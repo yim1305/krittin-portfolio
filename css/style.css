@@ -78,8 +78,8 @@ footer{ view-transition-name:site-footer; }
 /* Unhurried and sequenced: the outgoing content clears quickly, then the
    incoming content takes its time arriving. The overlap is what keeps it
    from reading as a cut. */
-::view-transition-old(root){ animation:260ms var(--ease) both vt-out; }
-::view-transition-new(root){ animation:520ms 90ms var(--ease-out) both vt-in; }
+::view-transition-old(root){ animation:180ms var(--ease) both vt-out; }
+::view-transition-new(root){ animation:360ms 50ms var(--ease-out) both vt-in; }
 
 /* Direction is set on <html> by main.js before the snapshot is taken, so
    going deeper and coming back are not the same gesture: forward, the new
@@ -103,7 +103,7 @@ html[data-vt="back"]::view-transition-new(root){ animation-name:vt-in-back; }
    the returned-to card on the way back; the detail-page halves are named
    below, where they are unique per page. */
 ::view-transition-group(proj-media),
-::view-transition-group(proj-title){ animation-duration:560ms; animation-timing-function:var(--ease-out); }
+::view-transition-group(proj-title){ animation-duration:400ms; animation-timing-function:var(--ease-out); }
 
 /* Native smooth scroll is replaced by an eased JS scroll in main.js so the
    long jumps between sections don't snap. Kept as the no-JS fallback. */
@@ -171,8 +171,10 @@ img, video{ max-width:100%; display:block; }
   view-transition-name:star-layer;
 }
 .star-layer{
-  position:absolute; inset:-25%;
+  position:absolute; inset:-20%;
   background-repeat:repeat;
+  contain:paint;
+  will-change:transform;
 }
 
 .star-far{
@@ -1619,6 +1621,7 @@ footer{
      `.marquee-track`, so the vertical marquee in About went on scrolling under
      a reduced-motion preference that had stopped the horizontal one. */
   .marquee-track, .marquee-v .marquee-track{ animation:none; }
+  .star-layer{ transform:none !important; will-change:auto; }
   .star-near{ animation:none; }
   .nebula{ transform:none; }
   .eyebrow .dot, .hero-focus .dot{ animation:none; }
