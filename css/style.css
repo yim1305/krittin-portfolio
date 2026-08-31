@@ -266,9 +266,15 @@ img, video{ max-width:100%; display:block; }
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   display:flex; gap:44px;
 }
+/* Krittin: "make the index top middle bigger and use Capitals" — bigger and
+   uppercase than the lowercase 15px the wordmark shares via .topnav, so this
+   overrides both just for the links themselves. Letter-spacing eases off
+   .topnav's -.02em (tuned for lowercase) the way .eyebrow's uppercase mono
+   labels already do elsewhere on the site. */
 .navlinks a{
   color:var(--warm-granite);
   padding:4px 0;
+  font-size:16px; text-transform:uppercase; letter-spacing:-.01em;
   transition:color var(--t-fast) var(--ease);
 }
 .navlinks a:hover, .navlinks a.active{ color:var(--bone); }
@@ -513,7 +519,7 @@ section{ position:relative; z-index:1; }
 /* Portrait | copy + education | vertical tool marks. The copy sits in the
    middle, above the horizon the descent lands on. */
 .about-grid{
-  display:grid; grid-template-columns:420px minmax(0,1fr) 230px;
+  display:grid; grid-template-columns:420px minmax(0,1fr) 250px;
   gap:56px; align-items:start;
 }
 
@@ -523,8 +529,19 @@ section{ position:relative; z-index:1; }
    longer so we can see the entire rocket im hodling" — so this column is now
    taller than the middle/right ones (About's total height DOES grow with it,
    unlike before) and `.about-grid`'s `align-items:start` is what lets that
-   happen without stretching the other two columns to match. */
-.about-plate{ display:flex; flex-direction:column; }
+   happen without stretching the other two columns to match.
+
+   Krittin: "push the tools and skills to the right more, but also move the
+   photo to make everything symmetric" — the grid's own columns already flush
+   the skills column against section-inner's right edge, so there is no room
+   to push it further right without widening the section itself (which does
+   nothing once the viewport is narrower than the max-width). Instead both end
+   columns bleed the SAME 24px into section-inner's own 40px side padding —
+   photo left, skills right — so the shift is symmetric and viewport-
+   independent rather than depending on how wide Krittin's screen happens to
+   be. UNVERIFIED — check it reads as centred rather than cramped against the
+   edges. */
+.about-plate{ display:flex; flex-direction:column; margin-left:-24px; }
 .about-photo{
   /* Matches krittin-portrait.jpg's own 548x900 exactly, so `cover` below has
      nothing to crop — the whole rocket stays in frame at any column width. */
@@ -537,9 +554,13 @@ section{ position:relative; z-index:1; }
 .about-photo:hover{ border-color:var(--warm-granite); }
 .about-photo img{ width:100%; height:100%; object-fit:cover; }
 
-.about-text{ font-size:16px; line-height:1.6; color:var(--pale-stone); max-width:640px; }
+/* Krittin: "make the font smaller for the description... make the text wider
+   as well so the height can be reduced" — it was sitting too far down the
+   page. Smaller + wider means fewer wrapped lines per paragraph, so the whole
+   bio block loses height even though the copy itself is unchanged. */
+.about-text{ font-size:15px; line-height:1.6; color:var(--pale-stone); max-width:760px; }
 .about-text p{ margin:0 0 16px; }
-.about-text .lead{ color:var(--bone); font-size:18px; margin-bottom:24px; }
+.about-text .lead{ color:var(--bone); font-size:17px; margin-bottom:24px; }
 
 /* ---------- education + coursework, inside About ----------
    Education had a full section of its own; Krittin folded it back into
@@ -565,7 +586,7 @@ section{ position:relative; z-index:1; }
    without disappearing. */
 .edu-detail{ font-family:var(--mono); font-size:11px; color:var(--pale-stone); }
 
-/* ---------- awards & certificates ---------- */
+/* ---------- awards ---------- */
 /* Awards is the section the Projects canvas SPILLS INTO — Krittin: "make this
    page and awards page connected" and "the bottom half just be on the awards
    page". The globe's lower half is drawn on that canvas, which overflows down
@@ -576,27 +597,23 @@ section{ position:relative; z-index:1; }
    stacking context at z-index 0 (see .proj-scene), so this section and
    everything in it paints ABOVE the planet rather than being hidden behind it.
    The section has no background of its own — if it ever gains one, the globe
-   disappears. */
+   disappears.
+
+   Krittin had this section's certificate list removed entirely; the empty
+   section-inner stays only so the min-height rule below still reserves the
+   room the globe's spill runs behind. */
 .awards{ padding:120px 0; position:relative; z-index:1; }
-.awards-grid{
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-  gap:1px; background:var(--ash); border:1px solid var(--ash); border-radius:10px;
-  overflow:hidden; margin-top:8px;
-}
-.award-card{
-  background:var(--void-edge); padding:24px; display:flex; flex-direction:column; gap:14px;
-}
-.award-media{
-  height:120px; border:1px solid var(--ash); border-radius:6px; background:var(--carbon);
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--graphite);
-}
-.award-name{ font-family:var(--sans); font-size:15px; font-weight:500; color:var(--bone); }
 
 /* ---------- experience ----------
    No border-top: About runs into this one over the same continuous sky, and a
    hairline across it would cut the two apart. Projects keeps its rule. */
-.experience{ padding:120px 0; }
+/* Krittin: "move everything from experience title to 01 through 07 up by half
+   the height of each experience tab" — a resting .exp-row (44px of .exp-head
+   padding + ~47px role-block) is ~91px, so top padding drops by half that,
+   ~46px, pulling the eyebrow and every row up together. Bottom keeps the full
+   120px. UNVERIFIED — the row-height estimate assumes the default line-height
+   on .exp-role/.exp-org; check the gap above "02 — experience" reads right. */
+.experience{ padding:74px 0 120px; }
 
 /* Wider than the 1200px default, matching About — the rows read as a table and
    want the room, and lining them up with the About columns above keeps the two
@@ -1164,7 +1181,10 @@ section{ position:relative; z-index:1; }
 
 /* Third column of the About grid: a slow vertical drift down the right-hand
    side rather than a horizontal band parked under the bio. */
-.about-skills{ display:flex; flex-direction:column; }
+/* Bleeds the same 24px into section-inner's right padding that .about-plate
+   bleeds into the left, so the two ends move outward by an equal amount —
+   see the comment on .about-grid. */
+.about-skills{ display:flex; flex-direction:column; margin-right:-24px; }
 .skills-label{
   font-family:var(--mono); font-size:11px; letter-spacing:.02em; text-transform:uppercase;
   color:var(--graphite); display:flex; align-items:center; gap:8px; margin-bottom:24px;
@@ -1562,6 +1582,10 @@ footer{
     position:relative; left:auto; top:auto; transform:none;
     gap:12px; font-size:11px;
   }
+  /* .navlinks a's own 16px (see the desktop rule above) would otherwise win
+     over this by inheritance and blow the links back out to a size five of
+     them plus the wordmark don't fit across a phone. */
+  .navlinks a{ font-size:11px; }
 }
 
 /* ---------- reduced motion ----------

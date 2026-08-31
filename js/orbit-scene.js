@@ -41,6 +41,7 @@ const GLOBE_R = 1.5;
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const SATELLITES = [
+  { id: "home",       label: "home",              href: "#home",       radius: 1.95, tilt: -10, incl: 18,  speed: 0.13, phase: 150, color: GREEN  },
   { id: "about",      label: "about",             href: "#about",      radius: 2.35, tilt: 8,   incl: 12,  speed: 0.10, phase: 0,   color: ORANGE },
   { id: "experience", label: "experience",        href: "#experience", radius: 2.75, tilt: -22, incl: -20, speed: 0.07, phase: 95,  color: GREEN  },
   { id: "projects",   label: "projects & papers", href: "#projects",   radius: 3.15, tilt: 16,  incl: 30,  speed: 0.05, phase: 200, color: ORANGE },

@@ -35,6 +35,14 @@ Three.js r160 comes from unpkg via the import map in `index.html`'s `<head>`
 visually himself and it loads his laptop. Reason about the code, state the
 numbers and the viewport they assume, and say plainly what is unverified.
 
+**Every `css/style.css`/`js/main.js` reference, and every scene module import,
+carries a `?v=YYYYMMDD` cache-buster** (`index.html` and all of `projects/*`).
+GitHub Pages' CDN and browsers can keep serving an older file after a
+re-upload otherwise, which is what made the live site look different from
+localhost after a push. **Bump the date in every one of those references**
+whenever `style.css`, `main.js`, or a scene module changes, or the deploy
+won't pick it up.
+
 ## Design system — "Factory" + space theme
 
 Dark, flat, instrument-panel. **The UI itself is flat**: no shadows, glow, blur,
@@ -258,7 +266,9 @@ Placeholders are marked in brackets; leave them until Krittin supplies content.
   interests/experience/thesis); photo real, uncropped (`aspect-ratio:548/900`,
   height varies with it). **Education & coursework (real):** `.about-edu-row`
   puts education LEFT, coursework RIGHT; `.edu-detail` is `--pale-stone`,
-  education's year its own line not "· year". **Awards:** VBU, Dean's List, Honors, UFIC.
+  education's year its own line not "· year". **Awards section has no
+  certificate list any more** — Krittin had it deleted entirely; the section
+  stays in the DOM empty, only so the Projects globe's spill still has room.
 - **Experience** — all 7 rows real, no `.exp-summary`. Order: CBF, then Space
   Systems Group (SSG). "Swamp Launch Rocketry Team (Swamplaunch)" reconstructs
   a message that came through blanked — UNVERIFIED, confirm the wording.

@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/style.css?v=20260830">
 
   <!-- In <head> and render-blocking, deliberately — see index.html. -->
-  <script src="../js/main.js"></script>
+  <script src="../js/main.js?v=20260830"></script>
 
   <!-- Import map for js/cmg-scene.js's "three" specifier — same CDN build
        index.html's two scenes use, see the note there. Only this one detail
@@ -145,7 +145,7 @@
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initCmgScene } from "../js/cmg-scene.js";
+    import { initCmgScene } from "../js/cmg-scene.js?v=20260830";
     const canvas = document.getElementById("cmg-canvas");
     if (canvas) {
       initCmgScene({

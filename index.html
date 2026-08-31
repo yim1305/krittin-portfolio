@@ -9,14 +9,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- ?v= is a manual cache-buster, not a build hash — there is no build step.
+       GitHub Pages' CDN (and browsers) can keep serving an OLDER style.css/
+       main.js after a re-upload, which is why the live site can look
+       different (Krittin: "everything seems more compressed... text all look
+       bigger") from what's on disk. Bump this value (e.g. to today's date)
+       whenever style.css, main.js, or a scene module changes, in every HTML
+       file that references it — see the matching tags in css/style.css and
+       js/main.js and every projects/*.html. -->
+  <link rel="stylesheet" href="css/style.css?v=20260830">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
        paint before an end-of-body script has run — which meant the page
        transition's direction flag and the carried-over backdrop offsets were
        being applied too late to affect the incoming snapshot. -->
-  <script src="js/main.js"></script>
+  <script src="js/main.js?v=20260830"></script>
 
   <!-- Import map so orbit-scene.js's "three" / "three/addons/..." specifiers resolve
        to the CDN build — required because OrbitControls.js itself imports the bare
@@ -154,7 +162,7 @@
         <span class="live"></span>
         <span>utc</span><span class="val" id="utc-clock">--:--:--</span>
         <span class="sep">/</span>
-        <span>tracking</span><span class="val" id="payload-count">0</span><span>payloads</span>
+        <span>tracking</span><span class="val" id="payload-count">0</span><span>satellites</span>
       </div>
 
       <div class="links-row">
@@ -688,39 +696,19 @@
   </section>
 
   <!-- Last section, and outside .descent — the globe has long gone by here.
-       Krittin: "remove the satellite button, the index at the top and the
-       section label" — no more hero cubesat, nav link or eyebrow pointing
-       here, but the section itself and its cards stay (he was explicit:
-       "dont fix the page length just leave that page"), still reachable by
-       scrolling and still what the Projects globe's spill runs behind. -->
+       No hero cubesat, nav link or eyebrow points here any more, and the
+       certificate list Krittin had is deleted entirely — the empty
+       section-inner stays only because the Projects globe's spill runs
+       behind this section (see .awards in style.css). -->
   <section class="awards" id="awards">
-    <div class="section-inner">
-      <div class="awards-grid">
-        <div class="award-card" data-reveal>
-          <div class="award-media">[ certificate image ]</div>
-          <div class="award-name">VBU</div>
-        </div>
-        <div class="award-card" data-reveal>
-          <div class="award-media">[ certificate image ]</div>
-          <div class="award-name">Dean's List</div>
-        </div>
-        <div class="award-card" data-reveal>
-          <div class="award-media">[ certificate image ]</div>
-          <div class="award-name">Honors</div>
-        </div>
-        <div class="award-card" data-reveal>
-          <div class="award-media">[ certificate image ]</div>
-          <div class="award-name">UFIC Certificate</div>
-        </div>
-      </div>
-    </div>
+    <div class="section-inner"></div>
   </section>
 
   <footer>krittin jindamai — mission log — 2026</footer>
 
   <script type="module">
-    import { initOrbitScene } from "./js/orbit-scene.js";
-    import { initSystemScene } from "./js/system-scene.js";
+    import { initOrbitScene } from "./js/orbit-scene.js?v=20260830";
+    import { initSystemScene } from "./js/system-scene.js?v=20260830";
 
     // The Projects scene is mounted LAZILY, on approach, rather than at load.
     // Creating the WebGL context and running its two equirectangular surface
@@ -780,7 +768,7 @@
         const locked = t.tracking && t.sats.find((s) => s.id === t.tracking);
         telEls.track.textContent = locked
           ? locked.label + " · r " + locked.radius.toFixed(2) + " · ν " + locked.anomaly.toFixed(0) + "°"
-          : t.sats.length + " payloads nominal";
+          : t.sats.length + " satellites nominal";
         telEls.track.classList.toggle("hot", Boolean(locked));
 
         telEls.count.textContent = t.sats.length;
