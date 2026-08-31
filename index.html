@@ -18,7 +18,7 @@
        whenever style.css, main.js, or a scene module changes, in every HTML
        file that references it — see the matching tags in css/style.css and
        js/main.js and every projects/*.html. -->
-  <link rel="stylesheet" href="css/style.css?v=20260831f">
+  <link rel="stylesheet" href="css/style.css?v=20260831g">
 
   <!-- In <head> and render-blocking, deliberately. `pagereveal` fires before
        the document's first render, and on a page this size the browser can
@@ -694,14 +694,9 @@
     </div>
   </section>
 
-  <!-- Last section, and outside .descent — the globe has long gone by here.
-       No hero cubesat, nav link or eyebrow points here any more, and the
-       certificate list Krittin had is deleted entirely — the empty
-       section-inner stays only because the Projects globe's spill runs
-       behind this section (see .awards in style.css). -->
-  <section class="awards" id="awards">
-    <div class="section-inner"></div>
-  </section>
+  <!-- Compact transparent tail: just enough room for the Projects Earth to
+       finish below its section, plus a small gap before the footer. -->
+  <section class="awards" id="awards" aria-hidden="true"></section>
 
   <footer>krittin jindamai — mission log — 2026</footer>
 

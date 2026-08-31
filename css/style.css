@@ -554,23 +554,15 @@ section{ position:relative; z-index:1; }
    without disappearing. */
 .edu-detail{ font-family:var(--mono); font-size:11px; color:var(--pale-stone); }
 
-/* ---------- awards ---------- */
-/* Awards is the section the Projects canvas SPILLS INTO — Krittin: "make this
-   page and awards page connected" and "the bottom half just be on the awards
-   page". The globe's lower half is drawn on that canvas, which overflows down
-   past its own section and behind this one, so the two read as one continuous
-   piece of sky rather than as two stacked panels.
-
-   position/z-index is what makes that safe: the canvas sits in its own
-   stacking context at z-index 0 (see .proj-scene), so this section and
-   everything in it paints ABOVE the planet rather than being hidden behind it.
-   The section has no background of its own — if it ever gains one, the globe
-   disappears.
-
-   Krittin had this section's certificate list removed entirely; the empty
-   section-inner stays only so the min-height rule below still reserves the
-   room the globe's spill runs behind. */
-.awards{ padding:120px 0; position:relative; z-index:1; }
+/* ---------- Earth tail ----------
+   This empty section only reserves room for the Projects canvas overflow.
+   Earth's limb ends at roughly 161% of the Projects design frame, so the tail
+   needs 61% of that viewport plus a small closing gap—not another full page.
+   On the stacked layout the canvas does not spill, so only the gap remains. */
+section.awards{ min-height:32px; padding:0; position:relative; z-index:1; }
+@media (min-width:901px){
+  section.awards{ min-height:calc(61vh + 8px); }
+}
 
 /* ---------- experience ----------
    No border-top: About runs into this one over the same continuous sky, and a
@@ -1419,6 +1411,9 @@ footer{
   border-top:1px solid var(--ash); padding:56px 40px; text-align:center;
   font-family:var(--mono); font-size:11px; color:var(--graphite); text-transform:uppercase;
 }
+/* The homepage footer follows the Earth tail; keep it compact so the page
+   visually ends just after the globe rather than opening another dark band. */
+.awards + footer{ padding:32px 40px; }
 
 /* ---------- responsive ---------- */
 
